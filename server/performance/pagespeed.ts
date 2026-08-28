@@ -1,3 +1,5 @@
+import { REVO_CONFIG } from '../config.js';
+
 export interface PageSpeedMetrics {
   performance: number;
   accessibility: number;
@@ -21,7 +23,8 @@ export async function fetchPageSpeed(targetUrl: string): Promise<PageSpeedMetric
     }
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
+    const timeoutMs = REVO_CONFIG.PAGESPEED_TIMEOUT_MS || 4500;
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     const res = await fetch(apiUrl, {
       signal: controller.signal,

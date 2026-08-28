@@ -6,6 +6,8 @@ import { analyzeWebsitePipeline } from './server/analyzer.js';
 import { getAnalysisRecord } from './server/database/storage.js';
 import { rateLimitMiddleware } from './server/security/rateLimiter.js';
 import { validateAndNormalizeUrl } from './server/security/urlValidator.js';
+import analyzeHandler from './api/analyze.js';
+import debugHandler from './api/analyze-debug.js';
 
 dotenv.config();
 
@@ -29,7 +31,6 @@ async function startServer() {
   // Diagnostic Analyzer Endpoint
   app.all('/api/analyze-debug', async (req, res) => {
     try {
-      const debugHandler = (await import('./api/analyze-debug.js')).default;
       return await debugHandler(req, res);
     } catch (err: unknown) {
       return res.status(500).json({
@@ -81,7 +82,6 @@ async function startServer() {
   // Main website analysis endpoint with rate limiting & owner association
   app.post('/api/analyze', rateLimitMiddleware, async (req, res) => {
     try {
-      const analyzeHandler = (await import('./api/analyze.js')).default;
       return await analyzeHandler(req, res);
     } catch (err: unknown) {
       console.error('[REVO Pipeline Error]:', err);

@@ -38,28 +38,33 @@ export default function App() {
     setAnalysisState('VALIDATING');
     setStatusMessage('Validating target URI...');
 
+    const controller = new AbortController();
+    const fetchTimeout = setTimeout(() => controller.abort(), 65000);
+
+    const timer1 = setTimeout(() => {
+      setAnalysisState('OBSERVING');
+      setStatusMessage('Browser observing DOM structure & layout...');
+    }, 600);
+
+    const timer2 = setTimeout(() => {
+      setAnalysisState('MEASURING');
+      setStatusMessage('Measuring performance, assets & hierarchy...');
+    }, 1600);
+
+    const timer3 = setTimeout(() => {
+      setAnalysisState('REASONING');
+      setStatusMessage('Gemini reasoning over observed evidence...');
+    }, 2800);
+
     try {
-      const timer1 = setTimeout(() => {
-        setAnalysisState('OBSERVING');
-        setStatusMessage('Browser observing DOM structure & layout...');
-      }, 600);
-
-      const timer2 = setTimeout(() => {
-        setAnalysisState('MEASURING');
-        setStatusMessage('Measuring performance, assets & hierarchy...');
-      }, 1600);
-
-      const timer3 = setTimeout(() => {
-        setAnalysisState('REASONING');
-        setStatusMessage('Gemini reasoning over observed evidence...');
-      }, 2800);
-
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: targetUrl }),
+        signal: controller.signal,
       });
 
+      clearTimeout(fetchTimeout);
       clearTimeout(timer1);
       clearTimeout(timer2);
       clearTimeout(timer3);
@@ -116,11 +121,27 @@ export default function App() {
         }, 150);
       }, 350);
     } catch (err: unknown) {
+      clearTimeout(fetchTimeout);
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+
       console.error('Analysis error:', err);
       setAnalysisState('ERROR');
-      let displayMsg = err instanceof Error ? err.message : 'Failed to inspect website. Please check the URL.';
-      if (displayMsg.includes('503') || displayMsg.includes('high demand') || displayMsg.includes('UNAVAILABLE')) {
-        displayMsg = 'The AI diagnostic engine is currently experiencing high traffic. Please retry in a moment.';
+      
+      let displayMsg = 'Failed to inspect website. Please check the URL and try again.';
+      if (err instanceof Error) {
+        if (err.name === 'AbortError' || err.message.includes('aborted') || err.message.includes('signal is aborted')) {
+          displayMsg = 'Analysis timed out. The target website took too long to respond. Please try again.';
+        } else if (err.message === 'Failed to fetch' || err.message.includes('Failed to fetch')) {
+          displayMsg = 'Could not reach analysis service. Please check your connection or retry in a moment.';
+        } else if (err.message.includes('503') || err.message.includes('high demand') || err.message.includes('UNAVAILABLE')) {
+          displayMsg = 'The AI diagnostic engine is currently experiencing high traffic. Please retry in a moment.';
+        } else if (err.message.includes('429') || err.message.includes('quota') || err.message.includes('RESOURCE_EXHAUSTED')) {
+          displayMsg = 'Rate limit reached. Please wait a few moments before running another analysis.';
+        } else {
+          displayMsg = err.message;
+        }
       }
       setErrorMessage(displayMsg);
     }

@@ -10,19 +10,24 @@ let isPlaywrightAvailable: boolean | null = null;
 let playwrightModule: typeof import('playwright') | null = null;
 
 async function getPlaywright() {
+  if (isPlaywrightAvailable === false) return null;
   if (playwrightModule) return playwrightModule;
   try {
-    playwrightModule = await import('playwright');
-    if (playwrightModule && playwrightModule.chromium) {
+    const pw = await import('playwright');
+    if (pw && pw.chromium) {
       try {
-        const execPath = playwrightModule.chromium.executablePath();
+        const execPath = pw.chromium.executablePath();
         if (!execPath || !fs.existsSync(execPath)) {
           isPlaywrightAvailable = false;
+          return null;
         }
       } catch {
         isPlaywrightAvailable = false;
+        return null;
       }
     }
+    playwrightModule = pw;
+    isPlaywrightAvailable = true;
     return playwrightModule;
   } catch (err) {
     isPlaywrightAvailable = false;

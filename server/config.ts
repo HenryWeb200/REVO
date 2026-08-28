@@ -24,13 +24,13 @@ export const REVO_CONFIG = {
   FETCH_FALLBACK_TIMEOUT_MS: 12000,
 
   // PageSpeed API Timeout
-  PAGESPEED_TIMEOUT_MS: 8000,
+  PAGESPEED_TIMEOUT_MS: 4500,
 
   // Gemini Intelligence Timeouts & Retries
   GEMINI: {
-    DEFAULT_MODEL: 'gemini-3.6-flash',
-    CANDIDATE_MODELS: ['gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.7-flash'],
-    REQUEST_TIMEOUT_MS: 20000,
+    DEFAULT_MODEL: 'gemini-3.5-flash-lite',
+    CANDIDATE_MODELS: ['gemini-3.5-flash-lite', 'gemini-3.7-flash', 'gemini-3.6-flash'],
+    REQUEST_TIMEOUT_MS: 25000,
     MAX_REPAIR_ATTEMPTS: 1,
     MAX_EVIDENCE_TEXT_CHARS: 3500,
     MAX_HEADINGS_COUNT: 20,
