@@ -179,30 +179,75 @@ export async function validateAndNormalizeUrl(rawInput: string): Promise<UrlVali
   }
 
   // DNS Resolution Validation: Verify that domain does not resolve to a private/loopback IP (DNS Rebinding/SSRF)
+  let resolvedRecords: { address: string; family: number }[] = [];
+  let effectiveHostname = hostname;
+
   try {
     const lookupResults = await dns.lookup(hostname, { all: true });
-    for (const record of lookupResults) {
-      if (record.family === 4 && isPrivateOrDisallowedIPv4(record.address)) {
-        return {
-          isValid: false,
-          isSsrfViolation: true,
-          error: 'Restricted destination: Target domain resolves to a protected or internal IP address.',
-        };
-      }
-      if (record.family === 6 && isPrivateOrDisallowedIPv6(record.address)) {
-        return {
-          isValid: false,
-          isSsrfViolation: true,
-          error: 'Restricted destination: Target domain resolves to a protected or internal IPv6 address.',
-        };
+    resolvedRecords = lookupResults;
+  } catch (primaryDnsErr) {
+    // If not prefixed with www, attempt www. fallback
+    if (!hostname.startsWith('www.') && !ipv4Regex.test(hostname)) {
+      try {
+        const wwwLookup = await dns.lookup(`www.${hostname}`, { all: true });
+        resolvedRecords = wwwLookup;
+        effectiveHostname = `www.${hostname}`;
+        parsed.hostname = effectiveHostname;
+      } catch {
+        // Fallback to DoH check below
       }
     }
-  } catch (dnsErr) {
-    // If DNS resolution fails, domain doesn't exist or is unreachable
-    return {
-      isValid: false,
-      error: `Could not resolve hostname "${hostname}". Please check that the domain exists and is publicly reachable.`,
-    };
+
+    // If system DNS failed, try Google DoH with a quick timeout in case container resolver has transient issues
+    if (resolvedRecords.length === 0) {
+      try {
+        const dohController = new AbortController();
+        const timeout = setTimeout(() => dohController.abort(), 2000);
+        const dohRes = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(hostname)}&type=A`, {
+          signal: dohController.signal,
+        });
+        clearTimeout(timeout);
+        if (dohRes.ok) {
+          const dohData: any = await dohRes.json();
+          if (dohData.Answer && Array.isArray(dohData.Answer)) {
+            for (const ans of dohData.Answer) {
+              if (ans.type === 1 && typeof ans.data === 'string') {
+                resolvedRecords.push({ address: ans.data, family: 4 });
+              } else if (ans.type === 28 && typeof ans.data === 'string') {
+                resolvedRecords.push({ address: ans.data, family: 6 });
+              }
+            }
+          }
+        }
+      } catch {
+        // DoH also failed
+      }
+    }
+
+    // If still no records resolved, domain is non-existent
+    if (resolvedRecords.length === 0) {
+      return {
+        isValid: false,
+        error: `Could not resolve hostname "${hostname}". Please check that the domain name is spelled correctly and is publicly accessible.`,
+      };
+    }
+  }
+
+  for (const record of resolvedRecords) {
+    if (record.family === 4 && isPrivateOrDisallowedIPv4(record.address)) {
+      return {
+        isValid: false,
+        isSsrfViolation: true,
+        error: 'Restricted destination: Target domain resolves to a protected or internal IP address.',
+      };
+    }
+    if (record.family === 6 && isPrivateOrDisallowedIPv6(record.address)) {
+      return {
+        isValid: false,
+        isSsrfViolation: true,
+        error: 'Restricted destination: Target domain resolves to a protected or internal IPv6 address.',
+      };
+    }
   }
 
   return {

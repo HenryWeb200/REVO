@@ -24,9 +24,9 @@ export default function App() {
   const resultRef = useRef<HTMLDivElement>(null);
 
   const sampleTargets = [
-    { label: 'auren-studio.design', fullUrl: 'https://auren-studio.design' },
     { label: 'linear.app', fullUrl: 'https://linear.app' },
     { label: 'stripe.com', fullUrl: 'https://stripe.com' },
+    { label: 'resend.com', fullUrl: 'https://resend.com' },
   ];
 
   const handleAnalyze = async (e?: React.FormEvent, overrideUrl?: string) => {

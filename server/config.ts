@@ -28,6 +28,8 @@ export const REVO_CONFIG = {
 
   // Gemini Intelligence Timeouts & Retries
   GEMINI: {
+    DEFAULT_MODEL: 'gemini-3.6-flash',
+    CANDIDATE_MODELS: ['gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.7-flash'],
     REQUEST_TIMEOUT_MS: 20000,
     MAX_REPAIR_ATTEMPTS: 1,
     MAX_EVIDENCE_TEXT_CHARS: 3500,

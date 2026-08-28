@@ -1,5 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import { getSupabaseAdminClient } from '../server/database/supabase.js';
+import { REVO_CONFIG } from '../server/config.js';
 
 export const config = {
   maxDuration: 60,
@@ -92,12 +93,9 @@ export default async function handler(req: any, res: any) {
   // TEST 7: Minimal Gemini request
   if (aiClient) {
     try {
-      const candidateModels = [
-        process.env.GEMINI_MODEL,
-        'gemini-3.6-flash',
-        'gemini-3.5-flash-lite',
-        'gemini-3.7-flash',
-      ].filter(Boolean) as string[];
+      const candidateModels = Array.from(
+        new Set([process.env.GEMINI_MODEL, ...REVO_CONFIG.GEMINI.CANDIDATE_MODELS].filter(Boolean) as string[])
+      );
 
       let text = '';
       let usedModel = '';

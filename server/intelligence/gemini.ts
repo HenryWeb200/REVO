@@ -153,14 +153,20 @@ Produce the full structured JSON report.
   function normalizeModel(modelName?: string): string | null {
     if (!modelName) return null;
     const clean = modelName.trim().replace(/^models\//, '');
-    if (clean === 'gemini-2.5-flash' || clean === 'gemini-2.0-flash' || clean === 'gemini-1.5-flash') {
-      return 'gemini-3.6-flash';
+    // If a deprecated/retired model is passed in the environment, rewrite to current default model
+    if (
+      clean.includes('2.5-flash') ||
+      clean.includes('2.0-flash') ||
+      clean.includes('1.5-flash') ||
+      clean.includes('1.0-pro')
+    ) {
+      return REVO_CONFIG.GEMINI.DEFAULT_MODEL;
     }
     return clean;
   }
 
   const normalizedEnvModel = normalizeModel(process.env.GEMINI_MODEL);
-  const baseCandidateModels = ['gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.7-flash'];
+  const baseCandidateModels = REVO_CONFIG.GEMINI.CANDIDATE_MODELS;
   const allUniqueModels = Array.from(
     new Set([normalizedEnvModel, ...baseCandidateModels].filter(Boolean) as string[])
   );
