@@ -1,0 +1,7 @@
+{
+  "name": "REVO Analyzer",
+  "description": "Intelligent Design X-Ray and website diagnostic instrument that explains why digital experiences work.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

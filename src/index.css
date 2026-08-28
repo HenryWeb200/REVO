@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-display: 'Geist', 'Inter', -apple-system, sans-serif;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #FAFAFA;
+    color: #111827;
+  }
+}
+
+.font-display {
+  font-family: 'Geist', 'Inter', -apple-system, sans-serif;
+}
+
+/* Subtle architectural coordinate lines (minimal, static) */
+.revo-subtle-border {
+  border-color: rgba(229, 231, 235, 0.8);
+}
+
+
