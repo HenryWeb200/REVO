@@ -22,7 +22,13 @@ export function extractDesignDna(evidence: WebsiteEvidencePackage, siteName: str
   const colors = evidence.dominantColors || [];
   const primaryColor = colors[0] || '#111827';
   const secondaryColor = colors[1] || '#FFFFFF';
-  const isDarkDominant = primaryColor.startsWith('#0') || primaryColor.startsWith('#1') || primaryColor.startsWith('#2');
+  const accentColor = colors[2] || colors[0] || '#1D63ED';
+  
+  // Calculate luminance / dark mode heuristic
+  const isDarkDominant = primaryColor.startsWith('#0') || 
+    primaryColor.startsWith('#1') || 
+    primaryColor.startsWith('#2') || 
+    primaryColor.startsWith('#3');
 
   const totalHeadings = evidence.headings.length;
   const totalCtas = evidence.primaryCtas.length;
@@ -30,96 +36,169 @@ export function extractDesignDna(evidence: WebsiteEvidencePackage, siteName: str
 
   // Density heuristic
   let densityLevel: 'spacious' | 'balanced' | 'compact' | 'dense' = 'balanced';
-  if (buttonDensity > 2.5 || evidence.totalButtons > 25) {
+  if (buttonDensity > 2.8 || evidence.totalButtons > 28) {
     densityLevel = 'dense';
-  } else if (buttonDensity > 1.4) {
+  } else if (buttonDensity > 1.5 || evidence.totalButtons > 16) {
     densityLevel = 'compact';
-  } else if (evidence.totalButtons < 8 && totalHeadings < 10) {
+  } else if (evidence.totalButtons < 8 && totalHeadings < 8) {
     densityLevel = 'spacious';
   }
 
-  // Heading hierarchy pattern
-  const h1 = evidence.headings.find((h) => h.level.toLowerCase() === 'h1')?.text || '';
+  // Heading hierarchy pattern & Typography style
+  const h1 = evidence.headings.find((h) => h.level.toLowerCase() === 'h1')?.text || evidence.title || '';
   const h2Count = evidence.headings.filter((h) => h.level.toLowerCase() === 'h2').length;
-  const headingStyle = h1.length > 50 ? 'Editorial / Narrative Display' : 'Concise / Product-Focused Punchy Display';
+  const h3Count = evidence.headings.filter((h) => h.level.toLowerCase() === 'h3').length;
+
+  let headingStyle = 'Concise / Product-Focused Punchy Display';
+  let typographyTag = 'Neo-Grotesque Product';
+  if (h1.length > 55) {
+    headingStyle = 'Editorial / Long-Form Narrative Display';
+    typographyTag = 'Editorial Display';
+  } else if (evidence.visibleTextSummary.toLowerCase().includes('api') || evidence.visibleTextSummary.toLowerCase().includes('developer') || evidence.visibleTextSummary.toLowerCase().includes('cli')) {
+    headingStyle = 'Technical Monospaced & High-Density Display';
+    typographyTag = 'Developer / Technical Sans';
+  } else if (isDarkDominant) {
+    headingStyle = 'High-Contrast Dark Mode Display';
+    typographyTag = 'Precision Dark Grotesk';
+  }
+
+  // Geometry & Card Treatment
+  let geometryTag = 'Precision Rounded (8–12px)';
+  let cornerRadiusDesc = '8px to 12px modern UI radius on interactive triggers and card containers';
+  if (densityLevel === 'spacious') {
+    geometryTag = 'Soft Large Radius (16–20px)';
+    cornerRadiusDesc = '14px to 20px organic pill/card radius for relaxed consumer feel';
+  } else if (densityLevel === 'dense') {
+    geometryTag = 'Sharp / Compact (4–8px)';
+    cornerRadiusDesc = '4px to 8px tight technical radius maximizing screen efficiency';
+  }
+
+  // Composition archetype
+  let layoutPattern = 'Centered focal hero leading into structured multi-column value grids';
+  let focalBalance = totalCtas > 1 ? 'Primary focal point supported by balanced secondary links' : 'Single high-impact action trajectory';
+  if (evidence.navigationItems.length > 6) {
+    layoutPattern = 'Multi-tier enterprise navigation framing asymmetric product overview';
+    focalBalance = 'Distributed focal points across multiple utility actions';
+  } else if (evidence.totalImages > 8) {
+    layoutPattern = 'Visual-first media showcase with supporting narrative blocks';
+    focalBalance = 'Media-driven visual fixation anchoring value proposition';
+  }
 
   // Fingerprint Badge summary
-  const typographyTag = h1.length > 50 ? 'Editorial Display' : 'Neo-Grotesque Product';
-  const geometryTag = 'Precision Rounded (8–12px)';
   const toneTag = isDarkDominant ? 'Dark Precision / Technical' : 'High-Contrast Neutral / Crisp';
   const fingerprintBadge = `Type: ${typographyTag} · Geometry: ${geometryTag} · Density: ${densityLevel.toUpperCase()} · Mode: ${isDarkDominant ? 'Dark' : 'Light'} · Tone: ${toneTag}`;
 
   return {
     typography: {
       style: headingStyle,
-      headingHierarchy: `${evidence.headings.length} detected tiers (${h2Count} section anchors)`,
-      contrast: 'High-contrast foreground typography over restrained neutral base',
+      headingHierarchy: `${evidence.headings.length} detected tiers (${h2Count} H2 section anchors, ${h3Count} H3 sub-anchors)`,
+      contrast: isDarkDominant ? 'Luminescent high-contrast white foreground over deep neutral backdrop' : 'High-contrast foreground typography over restrained neutral base',
       rhythm: 'Step ratio 1.25+ with disciplined tracking on display headlines',
     },
     geometry: {
-      cornerRadius: '8px to 14px modern UI radius on interactive triggers and containers',
-      cardStyle: 'Subtle 1px border framing (#E4E4E7) with flat elevation to reduce visual noise',
-      borderTreatment: 'Hairline neutral borders with optical padding math (Outer >= Inner)',
+      cornerRadius: cornerRadiusDesc,
+      cardStyle: 'Subtle 1px border framing (#E4E4E7) with flat elevation to eliminate visual noise',
+      borderTreatment: 'Hairline neutral borders with optical padding math (Outer Padding >= Inner Padding)',
     },
     density: {
       level: densityLevel,
-      spacingRhythm: densityLevel === 'spacious' ? 'Generous macro-spacing (64px–96px section gaps)' : 'Medium density with disciplined 24px–32px grouping rhythm',
+      spacingRhythm: densityLevel === 'spacious' 
+        ? 'Generous macro-spacing (64px–96px section gaps) prioritizing cognitive breathing room' 
+        : densityLevel === 'dense'
+        ? 'High-density information packing (16px–24px grouping rhythm) for technical data efficiency'
+        : 'Medium balanced density with disciplined 32px–48px grouping rhythm',
     },
     composition: {
-      layoutPattern: 'Centered focal hero leading into structured multi-column value grids',
-      focalBalance: totalCtas > 1 ? 'Primary focal point supported by balanced secondary links' : 'Single high-impact action trajectory',
-      negativeSpaceUsage: 'Restrained whitespace balancing high information density with cognitive breathing room',
+      layoutPattern,
+      focalBalance,
+      negativeSpaceUsage: densityLevel === 'spacious' 
+        ? 'Expansive negative space creating high visual distinction and luxury pacing' 
+        : 'Restrained whitespace balancing information density with focused action paths',
     },
     colorProfile: {
       mode: isDarkDominant ? 'dark' : 'light',
       dominantPalette: colors.slice(0, 5),
-      accentStrategy: `Monochromatic baseline with strategic accent pop (${colors[2] || colors[0] || '#1D63ED'}) on primary triggers`,
+      accentStrategy: `Monochromatic baseline with strategic accent pop (${accentColor}) on primary triggers`,
     },
     motion: {
       presence: 'Subtle state transitions on hover/focus (150ms ease-out)',
-      interactionStyle: 'Restrained micro-interactions prioritizing immediate feedback over decorative animations',
+      interactionStyle: 'Restrained micro-interactions prioritizing immediate tactile feedback over decorative animations',
     },
     visualTone: {
-      adjectives: ['Precision-crafted', 'Product-focused', 'Analytical', 'Modern'],
-      archetype: 'Modern Technical & Product Benchmark',
+      adjectives: isDarkDominant 
+        ? ['Technical', 'Authoritative', 'Modern', 'Focused'] 
+        : ['Crisp', 'Product-focused', 'Analytical', 'Modern'],
+      archetype: isDarkDominant ? 'Technical Developer & Power-User Benchmark' : 'Modern SaaS & Digital Product Benchmark',
     },
     fingerprintBadge,
   };
 }
 
 /**
- * Evaluates Familiarity vs Distinctiveness without generic bias.
+ * Evaluates Category Familiarity vs Distinctiveness without generic bias.
  */
 export function analyzeFamiliarity(evidence: WebsiteEvidencePackage, dna: DesignDnaV2): FamiliarityAnalysisV2 {
   const overused: string[] = [];
   const distinctive: string[] = [];
 
   const h1 = evidence.headings.find((h) => h.level.toLowerCase() === 'h1')?.text || '';
-  if (evidence.totalButtons > 20) {
-    overused.push('Standard multi-tier CTA proliferation in hero header');
-  }
-  if (evidence.navigationItems.length >= 6) {
-    overused.push('Conventional horizontal navbar structure');
-  } else {
-    distinctive.push('Restrained, high-clarity navigation hierarchy');
+  const textSample = (evidence.visibleTextSummary || '').toLowerCase();
+
+  // Pattern detection for generic marketing clichés
+  const genericClichés = [
+    'all-in-one',
+    'the future of',
+    'supercharge',
+    'empower',
+    'elevate your',
+    'seamlessly',
+    'revolutionary',
+    'next-gen',
+    'ai-powered platform',
+  ];
+
+  let foundClichéCount = 0;
+  for (const cliché of genericClichés) {
+    if (h1.toLowerCase().includes(cliché) || textSample.includes(cliché)) {
+      foundClichéCount++;
+    }
   }
 
-  if (h1.length > 0 && (h1.includes('The ') || h1.includes('All-in-one') || h1.includes('Platform'))) {
-    overused.push('Generic SaaS headline phrasing template');
+  if (foundClichéCount > 1) {
+    overused.push(`Conventional SaaS buzzword phrasing (${foundClichéCount} cliché patterns detected in copy)`);
   } else if (h1.length > 0) {
-    distinctive.push(`Sharp, specific headline positioning ("${h1.slice(0, 40)}...")`);
+    distinctive.push(`Concrete, descriptive value proposition ("${h1.slice(0, 45)}...")`);
   }
 
-  const score = distinctive.length > overused.length ? 8.2 : 6.8;
+  if (evidence.totalButtons > 22) {
+    overused.push('High button density creating visual competition across the viewport');
+  } else if (evidence.primaryCtas.length === 1) {
+    distinctive.push(`Single high-dominance action path ("${evidence.primaryCtas[0]}")`);
+  }
+
+  if (evidence.navigationItems.length >= 7) {
+    overused.push('Standard crowded horizontal navigation bar');
+  } else if (evidence.navigationItems.length > 0 && evidence.navigationItems.length <= 4) {
+    distinctive.push('Lean, curated navigation hierarchy that minimizes choice fatigue');
+  }
+
+  if (evidence.dominantColors.length >= 2 && !evidence.dominantColors[0].includes('gradient')) {
+    distinctive.push('Restrained chromatic discipline avoiding noisy gradient overlays');
+  }
+
+  const score = Math.max(5.5, Math.min(9.5, 7.5 + (distinctive.length - overused.length) * 0.7));
+  const classification = score >= 8.0 ? 'distinctive' : score >= 6.8 ? 'balanced' : 'conventional';
 
   return {
-    score,
-    classification: score > 7.5 ? 'distinctive' : 'balanced',
-    pros: 'Utilizes recognizable UI mental models that reduce cognitive friction for first-time visitors.',
-    cons: overused.length > 0 ? `Relies on ${overused.length} predictable category patterns that risk brand blending.` : 'Minor risk of over-restraint in decorative visual personality.',
-    overusedPatterns: overused.length > 0 ? overused : ['Standard bento card grids', 'Fixed top header navigation'],
-    distinctiveElements: distinctive.length > 0 ? distinctive : ['Disciplined typographical weights', 'Focused hero value proposition'],
-    recommendation: 'Retain standard usability patterns for navigation while sharpening hero copy and unique motion craft to stand out.',
+    score: Number(score.toFixed(1)),
+    classification,
+    pros: 'Leverages recognized mental models so visitors immediately understand navigation and interactive affordances.',
+    cons: overused.length > 0 
+      ? `Relies on ${overused.length} common category patterns that risk blending into competitor experiences.` 
+      : 'Maintains high discipline with minimal decorative risk.',
+    overusedPatterns: overused.length > 0 ? overused : ['Standard card grid layout', 'Conventional top navbar arrangement'],
+    distinctiveElements: distinctive.length > 0 ? distinctive : ['Clean typographic hierarchy', 'Direct value proposition messaging'],
+    recommendation: 'Keep recognizable navigational mental models, but sharpen hero typography contrast and elevate product-specific proof points to stand out.',
   };
 }
 
@@ -139,49 +218,51 @@ export function buildRootCausesAndClusters(
   const ps = evidence.pageSpeedMetrics;
   const loadTime = evidence.loadTimeMs || 800;
 
-  // Technical -> Visual Root Cause Link 1: Loading latency / Asset payload
-  if (loadTime > 1200 || (ps?.performance && ps.performance < 75)) {
+  // Root Cause 1: Performance / Hydration / Asset Weight
+  if (loadTime > 1200 || (ps?.performance && ps.performance < 75) || evidence.totalImages > 10) {
     rootCauses.push({
       id: 'rc_tech_payload',
-      title: 'Initial Asset Delivery & Hydration Bottleneck',
+      title: 'Initial Asset Payload & Hydration Latency',
       category: 'technical',
       type: 'root_cause',
-      description: `Document rendering completed in ${loadTime}ms with ${evidence.totalImages} images and external dependencies.`,
-      evidence: `Observed Load Time: ${loadTime}ms | Images: ${evidence.totalImages}`,
+      description: `Document execution took ${loadTime}ms with ${evidence.totalImages} visual assets and external script dependencies.`,
+      evidence: `Measured load time: ${loadTime}ms | Total images: ${evidence.totalImages} | PageSpeed Index: ${ps?.performance || 'N/A'}`,
       downstreamEffects: [
         'Delayed Largest Contentful Paint (LCP) causes visual layout shift during initial fold exposure',
         'Subconscious user impression of sluggishness reduces willingness to explore deeper routes',
+        'Mobile visitors on cellular connections experience higher initial bounce rates',
       ],
     });
 
     issueClusters.push({
       id: 'cluster_perf_ux',
       rootIssue: 'Asset Weight & Render Latency Directly Diluting First Visual Impression',
-      severity: 'high',
+      severity: loadTime > 2500 ? 'critical' : 'high',
       confidence: 'high',
       symptoms: [
         `LCP / Document load duration: ${loadTime}ms`,
-        'Hero fold stabilization delay',
-        'Initial bounce rate exposure on mobile networks',
+        'Hero fold stabilization delay before interactive readiness',
+        'Increased risk of bounce on mobile network conditions',
       ],
-      technicalVisualRelationship: 'Large asset payloads directly cause delayed hero visual completion, creating a split-second blank or shifting frame that weakens initial trust.',
+      technicalVisualRelationship: 'Large asset payloads and unoptimized font loading directly delay hero stabilization, creating a split-second blank or shifting frame that weakens initial visitor trust.',
       recommendedRootFix: 'Preload hero display font weights, compress hero graphics into modern AVIF/WebP, and defer non-critical analytics bundles.',
       expectedResult: 'Reduces visual stabilization time by 300–500ms, immediately improving perceived snappiness.',
     });
   }
 
-  // Visual / UX Root Cause Link 2: CTA Hierarchy & Cognitive Density
-  if (evidence.totalButtons > 12 || evidence.totalLinks > 30) {
+  // Root Cause 2: Visual Hierarchy & Button Competition
+  if (evidence.totalButtons > 12 || evidence.totalLinks > 28 || evidence.primaryCtas.length > 2) {
     rootCauses.push({
       id: 'rc_visual_hierarchy',
-      title: 'Distributed Focal Weight Across Interactive Controls',
+      title: 'Distributed Focal Weight Across Interactive Triggers',
       category: 'visual',
       type: 'root_cause',
-      description: `${evidence.totalButtons} buttons and ${evidence.totalLinks} links compete for eye fixation in the viewport.`,
-      evidence: `Buttons: ${evidence.totalButtons} | Links: ${evidence.totalLinks} | Headings: ${evidence.headings.length}`,
+      description: `${evidence.totalButtons} buttons and ${evidence.totalLinks} links compete for eye fixation across the viewport.`,
+      evidence: `DOM Buttons: ${evidence.totalButtons} | DOM Links: ${evidence.totalLinks} | Headings: ${evidence.headings.length}`,
       downstreamEffects: [
-        'Primary action button is visual peer to 3+ secondary triggers',
+        'Primary action button is visual peer to multiple secondary links',
         'Visitors experience micro-hesitation during the primary decision path',
+        'Attention splits across competing visual outlines instead of following a single conversion trajectory',
       ],
     });
 
@@ -201,7 +282,37 @@ export function buildRootCausesAndClusters(
     });
   }
 
-  // Fallback structural cluster if no extreme defects
+  // Root Cause 3: Content Scanning Rhythm & Text Density
+  if (evidence.visibleTextSummary.length > 1500 || evidence.headings.length > 10) {
+    rootCauses.push({
+      id: 'rc_content_scanning',
+      title: 'High Cognitive Text Density in Secondary Sections',
+      category: 'content',
+      type: 'intermediate_friction',
+      description: `Dense paragraph structures require sustained reading effort rather than enabling rapid scannability.`,
+      evidence: `Extracted text length: ~${Math.round(evidence.visibleTextSummary.length / 5)} words across ${evidence.headings.length} heading levels`,
+      downstreamEffects: [
+        'Visitors scan past dense feature paragraphs without absorbing key differentiators',
+        'Higher cognitive fatigue before reaching lower-funnel proof points',
+      ],
+    });
+
+    issueClusters.push({
+      id: 'cluster_content_rhythm',
+      rootIssue: 'Paragraph Block Density Impeding Rapid Value Scanning',
+      severity: 'medium',
+      confidence: 'high',
+      symptoms: [
+        'Paragraph blocks exceeding 3 lines without bold lead-in anchors',
+        'Uniform visual weight across feature descriptions',
+      ],
+      technicalVisualRelationship: 'Text block line-height and character width directly govern eye fatigue; long unformatted strings trigger skim abandonment.',
+      recommendedRootFix: 'Constrain body copy line-lengths to 65–75ch, use high-contrast bold lead-ins on bullet points, and add metric badges.',
+      expectedResult: 'Increases feature comprehension retention by ~35% during rapid scroll.',
+    });
+  }
+
+  // Fallback cluster if none triggered
   if (issueClusters.length === 0) {
     issueClusters.push({
       id: 'cluster_scan_rhythm',
@@ -231,32 +342,33 @@ export function buildShowMeWhyItems(
 ): ShowMeWhyItemV2[] {
   const items: ShowMeWhyItemV2[] = [];
 
-  // Item 1: Hero Hierarchy
+  // Item 1: Hero Hierarchy & CTA Trajectory
   const h1 = evidence.headings.find((h) => h.level.toLowerCase() === 'h1')?.text || evidence.title || 'Main Value Proposition';
   const primaryCta = evidence.primaryCtas[0] || 'Primary Action';
 
   items.push({
     id: 'smw_hero_hierarchy',
-    claim: 'Hero fold establishes clear initial intent but distributes visual emphasis across competing controls.',
+    claim: 'Hero fold establishes clear initial positioning but distributes visual emphasis across competing controls.',
     category: 'hierarchy',
     observedProof: [
       `H1 headline present: "${h1.slice(0, 60)}"`,
       `Primary CTA: "${primaryCta}"`,
       `Total buttons detected in DOM: ${evidence.totalButtons}`,
+      `Dominant accent color: ${evidence.dominantColors[0] || '#111827'}`,
     ],
-    metricMeasurement: `${evidence.headings.length} heading levels · ${evidence.totalButtons} buttons`,
+    metricMeasurement: `${evidence.headings.length} heading levels · ${evidence.totalButtons} buttons · ${evidence.totalLinks} links`,
     affectedRegion: {
       label: 'Hero Viewport (Top 0–800px)',
       cssTarget: 'header, section:first-of-type, .hero',
-      viewportDescription: 'First visible screenfold containing primary H1 and action triggers.',
+      viewportDescription: 'First visible screenfold containing primary H1, navigation, and action triggers.',
     },
     reasoningChain: {
-      problem: 'The eye has to filter through multiple action triggers before focusing on the primary goal.',
-      evidence: `${evidence.totalButtons} buttons and ${evidence.totalLinks} links observed on page.`,
-      whyItMatters: 'Users make stay-or-leave decisions in under 3 seconds; ambiguity creates friction.',
-      rootCause: 'Visual hierarchy treats secondary nav links with comparable chromatic weight as the primary CTA.',
-      recommendedChange: `Make "${primaryCta}" the only high-contrast solid button in the hero fold.`,
-      expectedEffect: 'Faster visual comprehension and higher conversion click-through rate.',
+      problem: 'The eye has to filter through multiple interactive triggers before focusing on the primary conversion goal.',
+      evidence: `${evidence.totalButtons} buttons and ${evidence.totalLinks} links observed in the rendered DOM.`,
+      whyItMatters: 'Visitors make stay-or-leave decisions in under 3 seconds; visual competition increases cognitive friction.',
+      rootCause: 'Secondary navigation links and secondary CTA buttons share comparable visual weight with the primary action.',
+      recommendedChange: `Make "${primaryCta}" the only high-contrast solid button in the hero fold; demote all secondary links to outline/ghost styling.`,
+      expectedEffect: 'Creates an immediate focal trajectory that accelerates conversion velocity.',
       priority: 'HIGH',
     },
     confidence: 'high',
@@ -266,12 +378,12 @@ export function buildShowMeWhyItems(
   const loadMs = evidence.loadTimeMs || 750;
   items.push({
     id: 'smw_performance_lcp',
-    claim: `Initial document response and DOM extraction completed in ${(loadMs / 1000).toFixed(2)}s.`,
+    claim: `Initial document response and DOM extraction completed in ${(loadMs / 1000).toFixed(2)}s with ${evidence.totalImages} visual assets.`,
     category: 'performance',
     observedProof: [
       `Measured load duration: ${loadMs}ms`,
       `DOM elements: ${evidence.totalButtons} buttons, ${evidence.totalLinks} links, ${evidence.totalImages} images`,
-      `PageSpeed index: ${evidence.pageSpeedMetrics?.performance || 'Measured via direct browser trace'}`,
+      `PageSpeed performance index: ${evidence.pageSpeedMetrics?.performance || 'Measured via direct browser trace'}`,
     ],
     metricMeasurement: `Load time: ${loadMs}ms · Images: ${evidence.totalImages}`,
     affectedRegion: {
@@ -280,12 +392,12 @@ export function buildShowMeWhyItems(
       viewportDescription: 'Initial HTML document transfer and font/asset execution pipeline.',
     },
     reasoningChain: {
-      problem: 'Document rendering involves multiple asset waterfalls that determine perceived speed.',
+      problem: 'Document rendering involves multiple asset waterfalls that govern perceived speed and visual stability.',
       evidence: `Initial load completed in ${loadMs}ms across ${evidence.totalImages} visual assets.`,
       whyItMatters: 'Every 100ms of visual delay increases bounce probability on mobile networks.',
-      rootCause: 'External script execution and unoptimized image dimensions in initial viewport.',
-      recommendedChange: 'Serve images in modern WebP/AVIF with explicit aspect ratios to avoid layout shift.',
-      expectedEffect: 'Stable visual painting with minimal layout displacement.',
+      rootCause: 'External script execution and unoptimized image dimensions in the initial viewport.',
+      recommendedChange: 'Serve images in modern WebP/AVIF with explicit aspect ratios to eliminate layout shift.',
+      expectedEffect: 'Stable visual painting with zero layout displacement.',
       priority: 'MEDIUM',
     },
     confidence: 'high',
@@ -299,6 +411,7 @@ export function buildShowMeWhyItems(
     observedProof: [
       `${evidence.headings.length} structured headings across ${evidence.headings.filter((h) => h.level.toLowerCase() === 'h2').length} section clusters`,
       `Dominant palette: ${evidence.dominantColors.slice(0, 3).join(', ') || '#111827, #FFFFFF'}`,
+      `Console errors: ${evidence.consoleErrors?.length || 0}`,
     ],
     metricMeasurement: `${evidence.headings.length} headings extracted`,
     affectedRegion: {
@@ -307,11 +420,11 @@ export function buildShowMeWhyItems(
       viewportDescription: 'Secondary and tertiary section blocks down the page fold.',
     },
     reasoningChain: {
-      problem: 'Paragraph density in feature blocks can occasionally impede rapid scanning.',
+      problem: 'Paragraph density in feature blocks can occasionally impede rapid scanning during quick scroll.',
       evidence: `Extracted visible text tokens: ~${Math.round(evidence.visibleTextSummary.length / 5)} words.`,
-      whyItMatters: 'Scanning visitors skip dense narrative blocks unless structured with clear anchors.',
+      whyItMatters: 'Scanning visitors skip dense narrative blocks unless structured with clear typographic anchors.',
       rootCause: 'Uniform typographic weights between introductory blurbs and feature details.',
-      recommendedChange: 'Use high-contrast bold lead-ins for feature bullet points.',
+      recommendedChange: 'Use high-contrast bold lead-ins for feature bullet points and constrain line length to 65–75ch.',
       expectedEffect: '30% faster reading comprehension during rapid scroll.',
       priority: 'MEDIUM',
     },
@@ -326,6 +439,9 @@ export function buildShowMeWhyItems(
  */
 export function buildQuickWins(evidence: WebsiteEvidencePackage, cta: string): QuickWinItemV2[] {
   const primaryCta = cta || 'Primary Action';
+  const primaryColor = evidence.dominantColors[0] || '#111827';
+  const accentColor = evidence.dominantColors[2] || evidence.dominantColors[0] || '#1D63ED';
+
   return [
     {
       id: 'qw_cta_contrast',
@@ -333,7 +449,7 @@ export function buildQuickWins(evidence: WebsiteEvidencePackage, cta: string): Q
       impact: 'High',
       effort: 'Minimal',
       confidence: 'high',
-      fix: `Change secondary buttons in the hero to ghost/outline style (border-color: #E4E4E7; background: transparent) so "${primaryCta}" holds 100% focal dominance.`,
+      fix: `Change secondary buttons in the hero to ghost/outline style (border-color: #E4E4E7; background: transparent) so "${primaryCta}" holds 100% focal dominance with solid background (${accentColor}).`,
       expectedResult: 'Immediate +12–18% increase in primary CTA click-through rate.',
     },
     {
@@ -342,12 +458,12 @@ export function buildQuickWins(evidence: WebsiteEvidencePackage, cta: string): Q
       impact: 'Medium',
       effort: 'Minimal',
       confidence: 'high',
-      fix: 'Apply letter-spacing: -0.02em on all H2 elements and increase font-weight from 500 to 700.',
+      fix: 'Apply letter-spacing: -0.025em on all H2 elements and increase font-weight from 500 to 700 to create sharp visual anchors.',
       expectedResult: 'Sharper visual anchors that facilitate rapid scanning.',
     },
     {
       id: 'qw_touch_targets',
-      issue: 'Mobile interactive padding on small links is close to minimum threshold.',
+      issue: 'Mobile interactive padding on small links is close to the minimum accessibility threshold.',
       impact: 'Medium',
       effort: 'Low',
       confidence: 'high',
@@ -386,7 +502,7 @@ export function buildRoadmapTiers(
     {
       priority: 2,
       problem: 'Asset Hydration & LCP Optimization',
-      whyItMatters: 'Visual paint delays increase mobile bounce rate.',
+      whyItMatters: 'Visual paint delays increase mobile bounce rate before first engagement.',
       recommendation: 'Preload display font weights and serve images with explicit aspect ratios.',
       expectedEffect: '200–400ms faster perceived visual stabilization.',
       tier: 'high_impact',
@@ -396,7 +512,7 @@ export function buildRoadmapTiers(
     {
       priority: 3,
       problem: 'Feature Grid Scannability & Proof Points',
-      whyItMatters: 'Visitors scan past dense copy blocks.',
+      whyItMatters: 'Visitors scan past dense copy blocks without absorbing key differentiators.',
       recommendation: 'Refactor feature blocks into 2-column grids with bold metric callouts.',
       expectedEffect: 'Higher time-on-page and message retention.',
       tier: 'high_impact',
@@ -757,3 +873,4 @@ export function enrichWithV2Intelligence(
     designBrief,
   };
 }
+
