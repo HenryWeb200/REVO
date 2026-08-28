@@ -6,6 +6,8 @@ import { analyzeWebsitePipeline } from './server/analyzer.js';
 import { getAnalysisRecord } from './server/database/storage.js';
 import { rateLimitMiddleware } from './server/security/rateLimiter.js';
 import { validateAndNormalizeUrl } from './server/security/urlValidator.js';
+import { handleAskRevo } from './server/intelligence/askRevo.js';
+import { compareTwoAnalyses } from './server/intelligence/compare.js';
 import analyzeHandler from './api/analyze.js';
 import debugHandler from './api/analyze-debug.js';
 
@@ -113,6 +115,40 @@ async function startServer() {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Unauthorized or record error.';
       return res.status(403).json({ error: message });
+    }
+  });
+
+  // Interactive Contextual Q&A (Ask REVO)
+  app.post('/api/ask', async (req, res) => {
+    try {
+      const { question, analysis, conversationHistory } = req.body;
+      if (!question || !analysis) {
+        return res.status(400).json({ error: 'Question and active analysis are required.' });
+      }
+
+      const response = await handleAskRevo({ question, analysis, conversationHistory });
+      return res.json(response);
+    } catch (err: unknown) {
+      console.error('[Ask REVO Error]:', err);
+      const message = err instanceof Error ? err.message : 'Failed to generate contextual answer.';
+      return res.status(500).json({ error: message });
+    }
+  });
+
+  // Website Comparison & DNA Fusion
+  app.post('/api/compare', async (req, res) => {
+    try {
+      const { baseAnalysis, comparisonAnalysis } = req.body;
+      if (!baseAnalysis || !comparisonAnalysis) {
+        return res.status(400).json({ error: 'Both base and comparison analysis packages are required.' });
+      }
+
+      const comparison = compareTwoAnalyses(baseAnalysis, comparisonAnalysis);
+      return res.json(comparison);
+    } catch (err: unknown) {
+      console.error('[Compare Error]:', err);
+      const message = err instanceof Error ? err.message : 'Failed to compare websites.';
+      return res.status(500).json({ error: message });
     }
   });
 

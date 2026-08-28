@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   ArrowRight,
   Globe,
@@ -6,12 +6,45 @@ import {
   AlertTriangle,
   ExternalLink,
   RotateCcw,
+  Sparkles,
+  Compass,
+  GitBranch,
+  Eye,
+  Zap,
+  Wand2,
+  Columns,
+  MessageSquare,
+  Terminal,
+  Layers,
+  History,
 } from 'lucide-react';
 import {
   StructuredAnalysisResponse,
   AnalysisState,
   DimensionScore,
 } from './types';
+
+// V2 Modular Components
+import { ExecutiveSummarySection } from './components/ExecutiveSummarySection';
+import { DesignDnaView } from './components/DesignDnaView';
+import { ShowMeWhyInspector } from './components/ShowMeWhyInspector';
+import { RootCauseGraphView } from './components/RootCauseGraphView';
+import { RoadmapAndQuickWinsView } from './components/RoadmapAndQuickWinsView';
+import { VarietyEngineView } from './components/VarietyEngineView';
+import { BeforeAfterCompareView } from './components/BeforeAfterCompareView';
+import { AskRevoDrawer } from './components/AskRevoDrawer';
+import { AiInstructionModal } from './components/AiInstructionModal';
+import { ProjectMemoryBar } from './components/ProjectMemoryBar';
+
+type V2Tab =
+  | 'overview'
+  | 'executive'
+  | 'dna'
+  | 'root_causes'
+  | 'show_me_why'
+  | 'roadmap'
+  | 'variety'
+  | 'compare';
 
 export default function App() {
   const [url, setUrl] = useState('');
@@ -20,6 +53,11 @@ export default function App() {
   const [statusMessage, setStatusMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [result, setResult] = useState<StructuredAnalysisResponse | null>(null);
+  const [activeTab, setActiveTab] = useState<V2Tab>('overview');
+
+  // Modals & Drawers
+  const [isAskRevoOpen, setIsAskRevoOpen] = useState(false);
+  const [isAiInstructionsOpen, setIsAiInstructionsOpen] = useState(false);
 
   const resultRef = useRef<HTMLDivElement>(null);
 
@@ -28,6 +66,24 @@ export default function App() {
     { label: 'stripe.com', fullUrl: 'https://stripe.com' },
     { label: 'resend.com', fullUrl: 'https://resend.com' },
   ];
+
+  // Save history to localStorage
+  const saveToHistory = (item: StructuredAnalysisResponse) => {
+    try {
+      const stored = localStorage.getItem('revo_analysis_history');
+      const list = stored ? JSON.parse(stored) : [];
+      const filtered = list.filter((x: any) => x.id !== item.id);
+      filtered.unshift({
+        id: item.id,
+        url: item.url,
+        siteName: item.siteName,
+        timestamp: item.analyzedAt,
+      });
+      localStorage.setItem('revo_analysis_history', JSON.stringify(filtered.slice(0, 10)));
+    } catch {
+      // ignore
+    }
+  };
 
   const handleAnalyze = async (e?: React.FormEvent, overrideUrl?: string) => {
     if (e) e.preventDefault();
@@ -43,17 +99,17 @@ export default function App() {
 
     const timer1 = setTimeout(() => {
       setAnalysisState('OBSERVING');
-      setStatusMessage('Browser observing DOM structure & layout...');
+      setStatusMessage('Browser observing DOM structure, visual hierarchy & assets...');
     }, 600);
 
     const timer2 = setTimeout(() => {
       setAnalysisState('MEASURING');
-      setStatusMessage('Measuring performance, assets & hierarchy...');
+      setStatusMessage('Measuring performance, typography & layout geometry...');
     }, 1600);
 
     const timer3 = setTimeout(() => {
       setAnalysisState('REASONING');
-      setStatusMessage('Gemini reasoning over observed evidence...');
+      setStatusMessage('Gemini reasoning over Design DNA & root causes...');
     }, 2800);
 
     try {
@@ -109,10 +165,11 @@ export default function App() {
       const data: StructuredAnalysisResponse = (resPayload && resPayload.data && resPayload.data.scores) ? resPayload.data : resPayload;
 
       setAnalysisState('SYNTHESIZING');
-      setStatusMessage('Structuring diagnostic synthesis...');
+      setStatusMessage('Structuring V2 Diagnostic Intelligence & Design DNA...');
 
       setTimeout(() => {
         setResult(data);
+        saveToHistory(data);
         setAnalysisState('COMPLETE');
         setStatusMessage('');
 
@@ -157,6 +214,7 @@ export default function App() {
     setAnalysisState('IDLE');
     setResult(null);
     setErrorMessage(null);
+    setActiveTab('overview');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -181,7 +239,7 @@ export default function App() {
 
           <div className="flex items-center space-x-2.5 text-xs text-[#71717A]">
             <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-md bg-[#F4F4F5] border border-[#E4E4E7] text-[#52525B] font-medium text-[11px]">
-              V1 Analysis Engine
+              V2 Reasoning Platform
             </span>
             <span className="w-1.5 h-1.5 rounded-full bg-[#1D63ED]"></span>
             <span className="text-[#52525B] font-medium text-xs">Live</span>
@@ -197,7 +255,7 @@ export default function App() {
 
             {/* Explainer Text */}
             <p className="text-sm sm:text-base md:text-lg text-[#71717A] font-medium tracking-tight leading-relaxed mt-4 sm:mt-5 max-w-2xl mx-auto">
-              See the decisions behind a website — not just the surface. Diagnostic reasoning, visual hierarchy, craft, and conversion mechanisms observed in real-time.
+              The AI reasoning layer between websites and developers. Diagnostic evidence, Design DNA, root causes, and architectural blueprints observed in real-time.
             </p>
           </div>
         </div>
@@ -261,7 +319,7 @@ export default function App() {
                   disabled={isAnalyzing || !url.trim()}
                   className="h-9 px-4 sm:px-5 bg-[#1D63ED] hover:bg-[#1855D0] active:bg-[#154BB8] disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium text-xs sm:text-sm rounded-lg sm:rounded-xl inline-flex items-center justify-center space-x-1.5 transition-colors cursor-pointer shrink-0 shadow-sm"
                 >
-                  <span>{isAnalyzing ? 'Observing...' : 'Analyze'}</span>
+                  <span>{isAnalyzing ? 'Reasoning...' : 'Analyze'}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -288,26 +346,31 @@ export default function App() {
         {/* Minimal Footnote */}
         {!result && (
           <div className="mt-1 text-center text-[10px] sm:text-[11px] text-[#A1A1AA] select-none shrink-0">
-            REVO &mdash; Observe &bull; Measure &bull; Structure &bull; Reason &bull; Explain
+            REVO V2 &mdash; Evidence &bull; Understanding &bull; Reasoning &bull; Design DNA &bull; Roadmap &bull; Action
           </div>
         )}
       </section>
 
       {/* ─────────────────────────────────────────────────────────────
-          05 — POST-ANALYSIS EXPERIENCE (Appended below homepage on submit)
+          02 — PROJECT MEMORY & RECENT SESSIONS BAR
+          ───────────────────────────────────────────────────────────── */}
+      {result && <ProjectMemoryBar currentId={result.id} />}
+
+      {/* ─────────────────────────────────────────────────────────────
+          03 — POST-ANALYSIS REVO V2 REASONING WORKSPACE
           ───────────────────────────────────────────────────────────── */}
       {result && (
         <section
           ref={resultRef}
-          className="w-full border-t border-[#E4E4E7] bg-white py-16 sm:py-24"
+          className="w-full border-t border-[#E4E4E7] bg-white py-12 sm:py-16"
         >
-          <div className="max-w-[1440px] mx-auto px-6 sm:px-12 lg:px-16 space-y-16 sm:space-y-24">
+          <div className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-12 space-y-12">
             {/* Header: Target Diagnostic Overview */}
             <div className="flex flex-col md:flex-row md:items-end justify-between border-b border-[#E4E4E7] pb-8 gap-6">
               <div className="space-y-2">
                 <div className="flex items-center space-x-2 text-xs text-[#52525B]">
                   <span className="w-2 h-2 rounded-full bg-[#1D63ED]"></span>
-                  <span className="font-semibold text-[#111827]">Live Diagnostic Synthesis</span>
+                  <span className="font-semibold text-[#111827]">V2 Intelligence Synthesis</span>
                   <span>•</span>
                   <span>{result.siteType}</span>
                   <span>•</span>
@@ -327,353 +390,387 @@ export default function App() {
                 </a>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3">
-                {/* Real-time processing duration badge */}
-                {result.processingMetadata?.timings && (
-                  <div className="px-4 py-3 bg-[#FAFAFA] border border-[#E4E4E7] rounded-xl text-left">
-                    <span className="text-xs text-[#71717A] block font-medium">Total Processing Time</span>
-                    <span className="text-sm font-bold text-[#111827] block">
-                      {((result.processingMetadata.timings.totalDurationMs || 0) / 1000).toFixed(2)}s
-                    </span>
-                  </div>
-                )}
+              <div className="flex flex-wrap items-center gap-2.5">
+                {/* Ask REVO Trigger */}
+                <button
+                  onClick={() => setIsAskRevoOpen(true)}
+                  className="px-4 py-2.5 bg-[#1D63ED] hover:bg-[#1855D0] text-white rounded-xl text-xs font-semibold inline-flex items-center space-x-2 cursor-pointer shadow-xs transition-colors"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>Ask REVO</span>
+                </button>
 
-                <div className="px-4 py-3 bg-[#FAFAFA] border border-[#E4E4E7] rounded-xl text-left">
-                  <span className="text-xs text-[#71717A] block font-medium">Inferred Objective</span>
-                  <span className="text-sm font-semibold text-[#111827] block max-w-[240px] truncate">
-                    {result.primaryGoal}
-                  </span>
-                  <span className="text-[11px] text-[#71717A]">
-                    Confidence: {Math.round(result.goalConfidence * 100)}%
-                  </span>
-                </div>
+                {/* Export Brief / AI Prompts */}
+                <button
+                  onClick={() => setIsAiInstructionsOpen(true)}
+                  className="px-4 py-2.5 bg-[#FAFAFA] border border-[#E4E4E7] hover:border-[#D4D4D8] text-[#111827] rounded-xl text-xs font-semibold inline-flex items-center space-x-2 cursor-pointer transition-colors"
+                >
+                  <Terminal className="w-3.5 h-3.5 text-[#1D63ED]" />
+                  <span>AI Prompt & Brief</span>
+                </button>
 
                 <button
                   onClick={handleReset}
-                  className="px-4 py-3 bg-[#111827] hover:bg-[#27272A] text-white rounded-xl text-xs font-medium inline-flex items-center space-x-1.5 transition-colors cursor-pointer"
+                  className="px-4 py-2.5 bg-[#111827] hover:bg-[#27272A] text-white rounded-xl text-xs font-medium inline-flex items-center space-x-1.5 transition-colors cursor-pointer"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Inspect Another</span>
+                  <span>New URL</span>
                 </button>
               </div>
             </div>
 
-            {/* 01: WHAT REVO SEES */}
-            <div className="bg-[#FAFAFA] border border-[#E4E4E7] rounded-2xl p-6 sm:p-10 space-y-6">
-              <div className="space-y-1">
-                <span className="text-xs text-[#1D63ED] uppercase font-semibold block tracking-wider">
-                  Observation Layer
-                </span>
-                <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-[#111827]">
-                  What REVO Sees
-                </h3>
-              </div>
+            {/* ─────────────────────────────────────────────────────────────
+                04 — V2 WORKSPACE NAVIGATION TAB BAR
+                ───────────────────────────────────────────────────────────── */}
+            <div className="w-full overflow-x-auto border-b border-[#E4E4E7] pb-1 no-scrollbar">
+              <nav className="flex items-center space-x-2 min-w-max">
+                <button
+                  onClick={() => setActiveTab('overview')}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold inline-flex items-center space-x-2 transition-colors cursor-pointer ${
+                    activeTab === 'overview'
+                      ? 'bg-[#111827] text-white shadow-xs'
+                      : 'text-[#71717A] hover:text-[#111827] hover:bg-[#FAFAFA]'
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Overview & Evidence</span>
+                </button>
 
-              <p className="text-base sm:text-xl font-normal text-[#111827] leading-relaxed max-w-4xl">
-                {result.whatRevoSees.summary}
-              </p>
+                <button
+                  onClick={() => setActiveTab('executive')}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold inline-flex items-center space-x-2 transition-colors cursor-pointer ${
+                    activeTab === 'executive'
+                      ? 'bg-[#111827] text-white shadow-xs'
+                      : 'text-[#71717A] hover:text-[#111827] hover:bg-[#FAFAFA]'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Executive Diagnosis</span>
+                </button>
 
-              {result.whatRevoSees.keyObservations && result.whatRevoSees.keyObservations.length > 0 && (
-                <div className="pt-4 border-t border-[#E4E4E7] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {result.whatRevoSees.keyObservations.map((obs, idx) => (
-                    <div
-                      key={idx}
-                      className="p-4 bg-white border border-[#E4E4E7] rounded-xl text-xs text-[#52525B] leading-relaxed flex items-start space-x-2.5"
-                    >
-                      <span className="font-semibold text-[#111827] shrink-0">0{idx + 1}</span>
-                      <span>{obs}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+                <button
+                  onClick={() => setActiveTab('dna')}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold inline-flex items-center space-x-2 transition-colors cursor-pointer ${
+                    activeTab === 'dna'
+                      ? 'bg-[#111827] text-white shadow-xs'
+                      : 'text-[#71717A] hover:text-[#111827] hover:bg-[#FAFAFA]'
+                  }`}
+                >
+                  <Compass className="w-3.5 h-3.5" />
+                  <span>Design DNA & Familiarity</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('root_causes')}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold inline-flex items-center space-x-2 transition-colors cursor-pointer ${
+                    activeTab === 'root_causes'
+                      ? 'bg-[#111827] text-white shadow-xs'
+                      : 'text-[#71717A] hover:text-[#111827] hover:bg-[#FAFAFA]'
+                  }`}
+                >
+                  <GitBranch className="w-3.5 h-3.5" />
+                  <span>Root Cause Graph</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('show_me_why')}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold inline-flex items-center space-x-2 transition-colors cursor-pointer ${
+                    activeTab === 'show_me_why'
+                      ? 'bg-[#111827] text-white shadow-xs'
+                      : 'text-[#71717A] hover:text-[#111827] hover:bg-[#FAFAFA]'
+                  }`}
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Show Me Why</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('roadmap')}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold inline-flex items-center space-x-2 transition-colors cursor-pointer ${
+                    activeTab === 'roadmap'
+                      ? 'bg-[#111827] text-white shadow-xs'
+                      : 'text-[#71717A] hover:text-[#111827] hover:bg-[#FAFAFA]'
+                  }`}
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>Quick Wins & Roadmap</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('variety')}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold inline-flex items-center space-x-2 transition-colors cursor-pointer ${
+                    activeTab === 'variety'
+                      ? 'bg-[#111827] text-white shadow-xs'
+                      : 'text-[#71717A] hover:text-[#111827] hover:bg-[#FAFAFA]'
+                  }`}
+                >
+                  <Wand2 className="w-3.5 h-3.5" />
+                  <span>Variety Engine</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('compare')}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold inline-flex items-center space-x-2 transition-colors cursor-pointer ${
+                    activeTab === 'compare'
+                      ? 'bg-[#111827] text-white shadow-xs'
+                      : 'text-[#71717A] hover:text-[#111827] hover:bg-[#FAFAFA]'
+                  }`}
+                >
+                  <Columns className="w-3.5 h-3.5" />
+                  <span>Compare & DNA Fusion</span>
+                </button>
+              </nav>
             </div>
 
-            {/* Visual Viewport Screenshot */}
-            {result.evidence.screenshotDesktopBase64 ? (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between text-xs text-[#71717A]">
-                  <span className="font-medium text-[#111827]">Observed Desktop Viewport (1440 × 900)</span>
-                  <span>Captured via Playwright Observation Layer</span>
-                </div>
+            {/* ─────────────────────────────────────────────────────────────
+                TAB 1: OVERVIEW & EVIDENCE
+                ───────────────────────────────────────────────────────────── */}
+            {activeTab === 'overview' && (
+              <div className="space-y-16">
+                {/* Executive Summary High-Level Strip */}
+                <ExecutiveSummarySection result={result} />
 
-                <div className="w-full bg-[#FAFAFA] border border-[#E4E4E7] rounded-2xl overflow-hidden p-4 sm:p-8 flex items-center justify-center">
-                  <div className="w-full max-w-5xl bg-white border border-[#E4E4E7] rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.06)] overflow-hidden">
-                    <div className="bg-[#F4F4F5] border-b border-[#E4E4E7] px-4 py-2.5 flex items-center justify-between text-xs text-[#71717A]">
-                      <div className="flex items-center space-x-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#E4E4E7]"></span>
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#E4E4E7]"></span>
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#E4E4E7]"></span>
-                      </div>
-                      <div className="px-3 py-0.5 bg-white rounded border border-[#E4E4E7] text-xs text-[#52525B] truncate max-w-[300px]">
-                        {result.url}
-                      </div>
-                      <span className="text-[11px] text-[#A1A1AA]">Desktop 100%</span>
-                    </div>
-
-                    <img
-                      src={`data:image/png;base64,${result.evidence.screenshotDesktopBase64}`}
-                      alt={`Visual inspection of ${result.siteName}`}
-                      className="w-full h-auto max-h-[580px] object-cover object-top"
-                    />
+                {/* 01: WHAT REVO SEES */}
+                <div className="bg-[#FAFAFA] border border-[#E4E4E7] rounded-2xl p-6 sm:p-10 space-y-6">
+                  <div className="space-y-1">
+                    <span className="text-xs text-[#1D63ED] uppercase font-semibold block tracking-wider">
+                      Observation Layer
+                    </span>
+                    <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-[#111827]">
+                      What REVO Sees
+                    </h3>
                   </div>
-                </div>
-              </div>
-            ) : null}
 
-            {/* 02: WHY IT WORKS */}
-            <div className="space-y-6">
-              <div className="space-y-1">
-                <span className="text-xs text-[#1D63ED] uppercase font-semibold block tracking-wider">
-                  Core Mechanisms
-                </span>
-                <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-[#111827]">
-                  Why It Works
-                </h3>
-                <p className="text-xs text-[#71717A]">
-                  The strongest visual, ergonomic, and psychological mechanisms driving engagement.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {result.whyItWorks.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="bg-[#FAFAFA] border border-[#E4E4E7] rounded-xl p-6 space-y-4 hover:border-[#D4D4D8] transition-colors"
-                  >
-                    <div className="flex items-center space-x-2.5 text-xs text-[#1D63ED] font-semibold">
-                      <CheckCircle2 className="w-4 h-4 text-[#1D63ED] shrink-0" />
-                      <span className="text-[#111827] text-sm font-bold">{item.title}</span>
-                    </div>
-
-                    <p className="text-xs text-[#52525B] leading-relaxed">
-                      {item.explanation}
-                    </p>
-
-                    {item.evidence && item.evidence.length > 0 && (
-                      <div className="pt-3 border-t border-[#E4E4E7] space-y-1.5">
-                        <span className="text-[11px] font-semibold text-[#71717A] block">
-                          Observed Evidence:
-                        </span>
-                        <ul className="space-y-1">
-                          {item.evidence.map((ev, eIdx) => (
-                            <li key={eIdx} className="text-xs text-[#52525B] flex items-start space-x-1.5">
-                              <span className="text-[#1D63ED] font-bold">&bull;</span>
-                              <span>{ev}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* 03: WHERE IT BREAKS */}
-            <div className="space-y-6">
-              <div className="space-y-1">
-                <span className="text-xs text-[#EF4444] uppercase font-semibold block tracking-wider">
-                  Friction Analysis
-                </span>
-                <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-[#111827]">
-                  Where It Breaks
-                </h3>
-                <p className="text-xs text-[#71717A]">
-                  Structural ambiguities, cognitive bottlenecks, or visual friction points identified during inspection.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {result.whereItBreaks.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="bg-[#FAFAFA] border border-[#E4E4E7] rounded-xl p-6 space-y-4 hover:border-[#D4D4D8] transition-colors"
-                  >
-                    <div className="flex items-center space-x-2.5 text-xs text-[#EF4444] font-semibold">
-                      <AlertTriangle className="w-4 h-4 text-[#EF4444] shrink-0" />
-                      <span className="text-[#111827] text-sm font-bold">{item.title}</span>
-                    </div>
-
-                    <p className="text-xs text-[#52525B] leading-relaxed">
-                      {item.explanation}
-                    </p>
-
-                    {item.evidence && item.evidence.length > 0 && (
-                      <div className="pt-3 border-t border-[#E4E4E7] space-y-1.5">
-                        <span className="text-[11px] font-semibold text-[#71717A] block">
-                          Observed Evidence:
-                        </span>
-                        <ul className="space-y-1">
-                          {item.evidence.map((ev, eIdx) => (
-                            <li key={eIdx} className="text-xs text-[#52525B] flex items-start space-x-1.5">
-                              <span className="text-[#EF4444] font-bold">&bull;</span>
-                              <span>{ev}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* 04: INDEPENDENT MULTIDIMENSIONAL PROFILE */}
-            <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-[#E4E4E7] pb-4 gap-2">
-                <div className="space-y-1">
-                  <span className="text-xs text-[#1D63ED] uppercase font-semibold block tracking-wider">
-                    Diagnostic Dimensions
-                  </span>
-                  <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-[#111827]">
-                    Multidimensional Profile
-                  </h3>
-                  <p className="text-xs text-[#71717A]">
-                    Each axis evaluated independently with specific reasoning and confidence ratings.
+                  <p className="text-base sm:text-xl font-normal text-[#111827] leading-relaxed max-w-4xl">
+                    {result.whatRevoSees.summary}
                   </p>
+
+                  {result.whatRevoSees.keyObservations && result.whatRevoSees.keyObservations.length > 0 && (
+                    <div className="pt-4 border-t border-[#E4E4E7] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {result.whatRevoSees.keyObservations.map((obs, idx) => (
+                        <div
+                          key={idx}
+                          className="p-4 bg-white border border-[#E4E4E7] rounded-xl text-xs text-[#52525B] leading-relaxed flex items-start space-x-2.5"
+                        >
+                          <span className="font-semibold text-[#111827] shrink-0">0{idx + 1}</span>
+                          <span>{obs}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <span className="text-xs text-[#52525B] font-medium">
-                  {Object.keys(result.scores).length} Independent Dimensions
-                </span>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {(Object.entries(result.scores) as [string, DimensionScore][]).map(([key, dim]) => {
-                  const formatName = key
-                    .replace(/([A-Z])/g, ' $1')
-                    .replace(/^./, (str) => str.toUpperCase());
-
-                  return (
-                    <div
-                      key={key}
-                      className="bg-[#FAFAFA] border border-[#E4E4E7] rounded-xl p-5 space-y-3 hover:border-[#D4D4D8] transition-colors"
-                    >
-                      <div className="flex items-center justify-between border-b border-[#E4E4E7] pb-2.5">
-                        <span className="font-bold text-sm text-[#111827]">{formatName}</span>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-xs px-2 py-0.5 rounded bg-white border border-[#E4E4E7] text-[#71717A] capitalize">
-                            {dim.confidence} conf
-                          </span>
-                          <span className="font-display text-lg font-extrabold text-[#111827]">
-                            {dim.score.toFixed(1)}
-                            <span className="text-xs font-normal text-[#71717A]">/10</span>
-                          </span>
-                        </div>
-                      </div>
-
-                      <p className="text-xs text-[#52525B] leading-relaxed">
-                        {dim.reason}
-                      </p>
-
-                      {dim.evidence && dim.evidence.length > 0 && (
-                        <div className="pt-2 text-[11px] text-[#71717A] border-t border-[#F4F4F5]">
-                          <span className="font-medium text-[#52525B]">Evidence: </span>
-                          <span>{dim.evidence.join(', ')}</span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* 05: TOP 5 PRIORITY OPPORTUNITIES */}
-            <div className="space-y-6">
-              <div className="space-y-1">
-                <span className="text-xs text-[#1D63ED] uppercase font-semibold block tracking-wider">
-                  Actionable Strategy
-                </span>
-                <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-[#111827]">
-                  Top 5 Opportunities
-                </h3>
-                <p className="text-xs text-[#71717A]">
-                  Prioritized structural modifications with highest expected conversion and clarity yield.
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                {result.topOpportunities.map((opp) => (
-                  <div
-                    key={opp.priority}
-                    className="bg-[#FAFAFA] border border-[#E4E4E7] rounded-xl p-6 space-y-4 hover:border-[#D4D4D8] transition-colors"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E4E4E7] pb-3">
-                      <div className="flex items-center space-x-3">
-                        <span className="w-6 h-6 rounded-full bg-[#111827] text-white flex items-center justify-center text-xs font-bold shrink-0">
-                          {opp.priority}
-                        </span>
-                        <h4 className="font-bold text-[#111827] text-base">
-                          {opp.problem}
-                        </h4>
-                      </div>
-                      <span className="text-xs px-2.5 py-1 rounded-md bg-blue-50 border border-blue-200 text-[#1D63ED] font-semibold w-fit">
-                        Priority 0{opp.priority}
-                      </span>
+                {/* Visual Viewport Screenshot */}
+                {result.evidence.screenshotDesktopBase64 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between text-xs text-[#71717A]">
+                      <span className="font-medium text-[#111827]">Observed Desktop Viewport (1440 × 900)</span>
+                      <span>Captured via Playwright Observation Layer</span>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                      <div className="space-y-1">
-                        <span className="font-semibold text-[#71717A] block">Why It Matters:</span>
-                        <p className="text-[#52525B] leading-relaxed">{opp.whyItMatters}</p>
-                      </div>
+                    <div className="w-full bg-[#FAFAFA] border border-[#E4E4E7] rounded-2xl overflow-hidden p-4 sm:p-8 flex items-center justify-center">
+                      <div className="w-full max-w-5xl bg-white border border-[#E4E4E7] rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.06)] overflow-hidden">
+                        <div className="bg-[#F4F4F5] border-b border-[#E4E4E7] px-4 py-2.5 flex items-center justify-between text-xs text-[#71717A]">
+                          <div className="flex items-center space-x-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#E4E4E7]"></span>
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#E4E4E7]"></span>
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#E4E4E7]"></span>
+                          </div>
+                          <div className="px-3 py-0.5 bg-white rounded border border-[#E4E4E7] text-xs text-[#52525B] truncate max-w-[300px]">
+                            {result.url}
+                          </div>
+                          <span className="text-[11px] text-[#A1A1AA]">Desktop 100%</span>
+                        </div>
 
-                      <div className="space-y-1">
-                        <span className="font-semibold text-[#1D63ED] block">Recommended Change:</span>
-                        <p className="text-[#111827] leading-relaxed font-medium">{opp.recommendation}</p>
-                      </div>
-
-                      <div className="space-y-1">
-                        <span className="font-semibold text-emerald-700 block">Expected Effect:</span>
-                        <p className="text-[#52525B] leading-relaxed">{opp.expectedEffect}</p>
+                        <img
+                          src={`data:image/png;base64,${result.evidence.screenshotDesktopBase64}`}
+                          alt={`Visual inspection of ${result.siteName}`}
+                          className="w-full h-auto max-h-[580px] object-cover object-top"
+                        />
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* 06: EXECUTIVE SYNTHESIS & DOM AUDIT SUMMARY */}
-            <div className="bg-[#FAFAFA] border border-[#E4E4E7] rounded-2xl p-6 sm:p-10 space-y-6">
-              <div className="space-y-1">
-                <span className="text-xs text-[#1D63ED] uppercase font-semibold block tracking-wider">
-                  Executive Synthesis
-                </span>
-                <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-[#111827]">
-                  Overall Diagnosis
-                </h3>
-              </div>
-
-              <p className="text-base sm:text-lg font-normal text-[#111827] leading-relaxed">
-                {result.overallDiagnosis}
-              </p>
-
-              {/* Observed Raw Diagnostics Badge Bar */}
-              <div className="pt-6 border-t border-[#E4E4E7] flex flex-wrap items-center gap-3 text-xs text-[#52525B]">
-                {result.processingMetadata?.timings && (
-                  <span className="px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-800 font-semibold">
-                    ⏱ Total Processing Time: {((result.processingMetadata.timings.totalDurationMs || 0) / 1000).toFixed(2)}s
-                  </span>
                 )}
-                <span className="px-3 py-1.5 rounded-lg bg-white border border-[#E4E4E7] font-medium">
-                  Site Load: {result.evidence.loadTimeMs}ms
-                </span>
-                <span className="px-3 py-1.5 rounded-lg bg-white border border-[#E4E4E7] font-medium">
-                  Headings Extracted: {result.evidence.headings.length}
-                </span>
-                <span className="px-3 py-1.5 rounded-lg bg-white border border-[#E4E4E7] font-medium">
-                  Buttons: {result.evidence.totalButtons} | Links: {result.evidence.totalLinks}
-                </span>
-                {result.evidence.pageSpeedMetrics && (
-                  <span className="px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 font-medium">
-                    Lighthouse Perf: {result.evidence.pageSpeedMetrics.performance || 'N/A'}%
-                  </span>
-                )}
+
+                {/* 02: WHY IT WORKS & WHERE IT BREAKS */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Why It Works */}
+                  <div className="space-y-4">
+                    <div className="space-y-1">
+                      <span className="text-xs text-[#1D63ED] uppercase font-semibold block tracking-wider">
+                        Core Strengths
+                      </span>
+                      <h3 className="font-display text-xl font-bold text-[#111827]">
+                        Why It Works
+                      </h3>
+                    </div>
+                    <div className="space-y-4">
+                      {result.whyItWorks.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="bg-[#FAFAFA] border border-[#E4E4E7] rounded-xl p-5 space-y-3"
+                        >
+                          <div className="flex items-center space-x-2 text-[#111827] font-bold text-sm">
+                            <CheckCircle2 className="w-4 h-4 text-[#1D63ED] shrink-0" />
+                            <span>{item.title}</span>
+                          </div>
+                          <p className="text-xs text-[#52525B] leading-relaxed">{item.explanation}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Where It Breaks */}
+                  <div className="space-y-4">
+                    <div className="space-y-1">
+                      <span className="text-xs text-[#EF4444] uppercase font-semibold block tracking-wider">
+                        Friction & Bottlenecks
+                      </span>
+                      <h3 className="font-display text-xl font-bold text-[#111827]">
+                        Where It Breaks
+                      </h3>
+                    </div>
+                    <div className="space-y-4">
+                      {result.whereItBreaks.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="bg-[#FAFAFA] border border-[#E4E4E7] rounded-xl p-5 space-y-3"
+                        >
+                          <div className="flex items-center space-x-2 text-[#111827] font-bold text-sm">
+                            <AlertTriangle className="w-4 h-4 text-[#EF4444] shrink-0" />
+                            <span>{item.title}</span>
+                          </div>
+                          <p className="text-xs text-[#52525B] leading-relaxed">{item.explanation}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 04: INDEPENDENT MULTIDIMENSIONAL PROFILE */}
+                <div className="space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-[#E4E4E7] pb-4 gap-2">
+                    <div className="space-y-1">
+                      <span className="text-xs text-[#1D63ED] uppercase font-semibold block tracking-wider">
+                        Diagnostic Dimensions
+                      </span>
+                      <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-[#111827]">
+                        Multidimensional Profile
+                      </h3>
+                    </div>
+                    <span className="text-xs text-[#52525B] font-medium">
+                      {Object.keys(result.scores).length} Independent Dimensions
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {(Object.entries(result.scores) as [string, DimensionScore][]).map(([key, dim]) => {
+                      const formatName = key
+                        .replace(/([A-Z])/g, ' $1')
+                        .replace(/^./, (str) => str.toUpperCase());
+
+                      return (
+                        <div
+                          key={key}
+                          className="bg-[#FAFAFA] border border-[#E4E4E7] rounded-xl p-5 space-y-3 hover:border-[#D4D4D8] transition-colors"
+                        >
+                          <div className="flex items-center justify-between border-b border-[#E4E4E7] pb-2.5">
+                            <span className="font-bold text-sm text-[#111827]">{formatName}</span>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-xs px-2 py-0.5 rounded bg-white border border-[#E4E4E7] text-[#71717A] capitalize">
+                                {dim.confidence} conf
+                              </span>
+                              <span className="font-display text-lg font-extrabold text-[#111827]">
+                                {dim.score.toFixed(1)}
+                                <span className="text-xs font-normal text-[#71717A]">/10</span>
+                              </span>
+                            </div>
+                          </div>
+
+                          <p className="text-xs text-[#52525B] leading-relaxed">{dim.reason}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* ─────────────────────────────────────────────────────────────
+                TAB 2: EXECUTIVE SUMMARY
+                ───────────────────────────────────────────────────────────── */}
+            {activeTab === 'executive' && (
+              <div className="space-y-8">
+                <ExecutiveSummarySection result={result} />
+              </div>
+            )}
+
+            {/* ─────────────────────────────────────────────────────────────
+                TAB 3: DESIGN DNA & FAMILIARITY
+                ───────────────────────────────────────────────────────────── */}
+            {activeTab === 'dna' && (
+              <DesignDnaView
+                dna={result.designDna}
+                familiarity={result.familiarity}
+                evidence={result.evidence}
+                siteName={result.siteName}
+              />
+            )}
+
+            {/* ─────────────────────────────────────────────────────────────
+                TAB 4: ROOT CAUSE GRAPH
+                ───────────────────────────────────────────────────────────── */}
+            {activeTab === 'root_causes' && (
+              <RootCauseGraphView
+                rootCauses={result.rootCauses}
+                issueClusters={result.issueClusters}
+                siteName={result.siteName}
+              />
+            )}
+
+            {/* ─────────────────────────────────────────────────────────────
+                TAB 5: SHOW ME WHY
+                ───────────────────────────────────────────────────────────── */}
+            {activeTab === 'show_me_why' && (
+              <ShowMeWhyInspector
+                items={result.showMeWhy}
+                evidence={result.evidence}
+                siteName={result.siteName}
+              />
+            )}
+
+            {/* ─────────────────────────────────────────────────────────────
+                TAB 6: ROADMAP & QUICK WINS
+                ───────────────────────────────────────────────────────────── */}
+            {activeTab === 'roadmap' && (
+              <RoadmapAndQuickWinsView
+                quickWins={result.quickWins}
+                roadmapTiers={result.roadmapTiers}
+                siteName={result.siteName}
+              />
+            )}
+
+            {/* ─────────────────────────────────────────────────────────────
+                TAB 7: VARIETY ENGINE & DESIGN NEW
+                ───────────────────────────────────────────────────────────── */}
+            {activeTab === 'variety' && (
+              <VarietyEngineView
+                varietyOptions={result.varietyOptions}
+                designNew={result.designNew}
+                siteName={result.siteName}
+              />
+            )}
+
+            {/* ─────────────────────────────────────────────────────────────
+                TAB 8: BEFORE / AFTER & COMPARATOR
+                ───────────────────────────────────────────────────────────── */}
+            {activeTab === 'compare' && (
+              <BeforeAfterCompareView currentAnalysis={result} />
+            )}
 
             {/* Bottom Actions Bar */}
             <div className="pt-8 border-t border-[#E4E4E7] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#71717A]">
-              <div>REVO V1 Analysis Engine &bull; Senior Diagnostic Report complete</div>
+              <div>REVO V2 Reasoning Engine &bull; Senior Architectural Diagnosis</div>
               <button
                 onClick={handleReset}
                 className="px-5 py-2.5 bg-[#111827] hover:bg-[#27272A] text-white rounded-lg transition-colors font-medium cursor-pointer"
@@ -683,6 +780,26 @@ export default function App() {
             </div>
           </div>
         </section>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────
+          MODALS & COPILOT DRAWERS
+          ───────────────────────────────────────────────────────────── */}
+      {result && (
+        <>
+          <AskRevoDrawer
+            isOpen={isAskRevoOpen}
+            onClose={() => setIsAskRevoOpen(false)}
+            analysis={result}
+          />
+          <AiInstructionModal
+            isOpen={isAiInstructionsOpen}
+            onClose={() => setIsAiInstructionsOpen(false)}
+            aiInstructions={result.aiInstructions}
+            designBrief={result.designBrief}
+            siteName={result.siteName}
+          />
+        </>
       )}
     </div>
   );

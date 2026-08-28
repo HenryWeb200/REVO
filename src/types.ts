@@ -35,6 +35,7 @@ export interface WhyItWorksItem {
   evidence: string[];
   observedFact?: string;
   inferredImpact?: string;
+  showMeWhyId?: string;
 }
 
 export interface WhereItBreaksItem {
@@ -43,6 +44,8 @@ export interface WhereItBreaksItem {
   evidence: string[];
   observedFriction?: string;
   inferredRisk?: string;
+  rootCauseId?: string;
+  showMeWhyId?: string;
 }
 
 export interface PriorityOpportunity {
@@ -51,6 +54,9 @@ export interface PriorityOpportunity {
   whyItMatters: string;
   recommendation: string;
   expectedEffect: string;
+  tier?: 'immediate' | 'high_impact' | 'structural' | 'experimental';
+  effort?: 'Low' | 'Medium' | 'High';
+  confidence?: ConfidenceLevel;
 }
 
 export interface RevoAnalysisScores {
@@ -135,6 +141,214 @@ export interface AnalysisProcessingTimings {
   totalDurationMs?: number;
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// REVO V2 EXPANDED DOMAIN MODELS
+// ═══════════════════════════════════════════════════════════════════════
+
+export interface ExecutiveSummaryV2 {
+  overallHealth: string;
+  biggestStrength: string;
+  biggestWeakness: string;
+  biggestOpportunity: string;
+  mostSignificantTechnicalRisk: string;
+  designDnaSummary: string;
+  theSoWhatTakeaway: string;
+}
+
+export interface DesignDnaV2 {
+  typography: {
+    style: string;
+    headingHierarchy: string;
+    contrast: string;
+    rhythm: string;
+  };
+  geometry: {
+    cornerRadius: string;
+    cardStyle: string;
+    borderTreatment: string;
+  };
+  density: {
+    level: 'spacious' | 'balanced' | 'compact' | 'dense';
+    spacingRhythm: string;
+  };
+  composition: {
+    layoutPattern: string;
+    focalBalance: string;
+    negativeSpaceUsage: string;
+  };
+  colorProfile: {
+    mode: 'dark' | 'light' | 'hybrid';
+    dominantPalette: string[];
+    accentStrategy: string;
+  };
+  motion: {
+    presence: string;
+    interactionStyle: string;
+  };
+  visualTone: {
+    adjectives: string[];
+    archetype: string;
+  };
+  fingerprintBadge: string;
+}
+
+export interface FamiliarityAnalysisV2 {
+  score: number; // 0.0 - 10.0 (10 = highly distinctive, 1 = generic template)
+  classification: 'distinctive' | 'balanced' | 'conventional' | 'template-like';
+  pros: string;
+  cons: string;
+  overusedPatterns: string[];
+  distinctiveElements: string[];
+  recommendation: string;
+}
+
+export interface ShowMeWhyItemV2 {
+  id: string;
+  claim: string;
+  category: 'hierarchy' | 'conversion' | 'performance' | 'craft' | 'typography' | 'accessibility';
+  observedProof: string[];
+  metricMeasurement?: string;
+  affectedRegion: {
+    label: string;
+    cssTarget?: string;
+    viewportDescription: string;
+  };
+  reasoningChain: {
+    problem: string;
+    evidence: string;
+    whyItMatters: string;
+    rootCause: string;
+    recommendedChange: string;
+    expectedEffect: string;
+    priority: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+  };
+  confidence: ConfidenceLevel;
+}
+
+export interface RootCauseNodeV2 {
+  id: string;
+  title: string;
+  category: 'technical' | 'visual' | 'ux' | 'content';
+  type: 'root_cause' | 'intermediate_friction' | 'surface_symptom';
+  description: string;
+  evidence: string;
+  downstreamEffects: string[];
+}
+
+export interface IssueClusterV2 {
+  id: string;
+  rootIssue: string;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  confidence: ConfidenceLevel;
+  symptoms: string[];
+  technicalVisualRelationship?: string;
+  recommendedRootFix: string;
+  expectedResult: string;
+}
+
+export interface QuickWinItemV2 {
+  id: string;
+  issue: string;
+  impact: 'High' | 'Medium';
+  effort: 'Minimal' | 'Low';
+  confidence: ConfidenceLevel;
+  fix: string;
+  expectedResult: string;
+}
+
+export interface VarietyOptionV2 {
+  id: string;
+  name: 'Current' | 'Minimal' | 'Editorial' | 'Bold' | 'Experimental';
+  tagline: string;
+  keyChanges: string[];
+  preservedIdentity: string[];
+  aestheticDirection: string;
+  recommendedWhen: string;
+}
+
+export interface DesignNewDirectionV2 {
+  visionTitle: string;
+  visionSummary: string;
+  corePillars: {
+    area: string;
+    currentLimitation: string;
+    newDirection: string;
+    strategicWhy: string;
+  }[];
+  designPrinciples: string[];
+  uxPrinciples: string[];
+  implementationBlueprint: string;
+}
+
+export interface AiInstructionsV2 {
+  cursorRulesMarkdown: string;
+  claudePromptMarkdown: string;
+  geminiCodingInstructions: string;
+  exactCssTokens: {
+    variable: string;
+    current: string;
+    suggested: string;
+    purpose: string;
+  }[];
+  refactoringChecklist: string[];
+}
+
+export interface RevoDesignBriefV2 {
+  productIntent: string;
+  targetAudience: string;
+  currentDesignDna: string;
+  strengthsSummary: string[];
+  coreBottlenecks: string[];
+  visualDirection: string[];
+  motionPrinciples: string[];
+  responsiveRules: string[];
+  actionPriorities: string[];
+}
+
+export interface DesignDriftSnapshotV2 {
+  id: string;
+  timestamp: string;
+  url: string;
+  siteName: string;
+  scores: {
+    clarity: number;
+    craft: number;
+    convertibility: number;
+    performance: number;
+  };
+  dnaFingerprint: string;
+  notableFindings: string[];
+}
+
+export interface BeforeAfterComparisonV2 {
+  baseSite: {
+    url: string;
+    name: string;
+    clarityScore: number;
+    craftScore: number;
+    dnaSummary: string;
+  };
+  comparisonSite: {
+    url: string;
+    name: string;
+    clarityScore: number;
+    craftScore: number;
+    dnaSummary: string;
+  };
+  sharedDna: string[];
+  distinctDna: {
+    baseDistinct: string[];
+    comparisonDistinct: string[];
+  };
+  fusionOpportunities: string[];
+  dnaConflicts: string[];
+  strengthsComparison: {
+    baseAdvantage: string[];
+    comparisonAdvantage: string[];
+  };
+  strategicVerdict: string;
+}
+
 export interface StructuredAnalysisResponse {
   id: string;
   ownerId?: string;
@@ -158,6 +372,25 @@ export interface StructuredAnalysisResponse {
     attempts?: number;
     failedStage?: string;
   };
+
+  // V2 Reasoning & Intelligence Layers
+  executiveSummary?: ExecutiveSummaryV2;
+  designDna?: DesignDnaV2;
+  familiarity?: FamiliarityAnalysisV2;
+  showMeWhy?: ShowMeWhyItemV2[];
+  rootCauses?: RootCauseNodeV2[];
+  issueClusters?: IssueClusterV2[];
+  quickWins?: QuickWinItemV2[];
+  roadmapTiers?: {
+    immediate: PriorityOpportunity[];
+    highImpact: PriorityOpportunity[];
+    structural: PriorityOpportunity[];
+    experimental: PriorityOpportunity[];
+  };
+  varietyOptions?: VarietyOptionV2[];
+  designNew?: DesignNewDirectionV2;
+  aiInstructions?: AiInstructionsV2;
+  designBrief?: RevoDesignBriefV2;
 }
 
 export interface AnalysisDocument {
@@ -207,6 +440,8 @@ export interface AnalysisDocument {
     scores: RevoAnalysisScores;
     opportunities: PriorityOpportunity[];
     overallDiagnosis: string;
+    executiveSummary?: ExecutiveSummaryV2;
+    designDna?: DesignDnaV2;
   };
   errors?: string[];
   metadata?: {
@@ -218,3 +453,4 @@ export interface AnalysisDocument {
 }
 
 export type MongoAnalysisDocument = AnalysisDocument;
+
