@@ -307,6 +307,16 @@ export default function App() {
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
+                {/* Real-time processing duration badge */}
+                {result.processingMetadata?.timings && (
+                  <div className="px-4 py-3 bg-[#FAFAFA] border border-[#E4E4E7] rounded-xl text-left">
+                    <span className="text-xs text-[#71717A] block font-medium">Total Processing Time</span>
+                    <span className="text-sm font-bold text-[#111827] block">
+                      {((result.processingMetadata.timings.totalDurationMs || 0) / 1000).toFixed(2)}s
+                    </span>
+                  </div>
+                )}
+
                 <div className="px-4 py-3 bg-[#FAFAFA] border border-[#E4E4E7] rounded-xl text-left">
                   <span className="text-xs text-[#71717A] block font-medium">Inferred Objective</span>
                   <span className="text-sm font-semibold text-[#111827] block max-w-[240px] truncate">
@@ -618,8 +628,13 @@ export default function App() {
 
               {/* Observed Raw Diagnostics Badge Bar */}
               <div className="pt-6 border-t border-[#E4E4E7] flex flex-wrap items-center gap-3 text-xs text-[#52525B]">
+                {result.processingMetadata?.timings && (
+                  <span className="px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-800 font-semibold">
+                    ⏱ Total Processing Time: {((result.processingMetadata.timings.totalDurationMs || 0) / 1000).toFixed(2)}s
+                  </span>
+                )}
                 <span className="px-3 py-1.5 rounded-lg bg-white border border-[#E4E4E7] font-medium">
-                  Load Time: {result.evidence.loadTimeMs}ms
+                  Site Load: {result.evidence.loadTimeMs}ms
                 </span>
                 <span className="px-3 py-1.5 rounded-lg bg-white border border-[#E4E4E7] font-medium">
                   Headings Extracted: {result.evidence.headings.length}
