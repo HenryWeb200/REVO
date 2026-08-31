@@ -96,7 +96,7 @@ export const RoadmapAndQuickWinsView: React.FC<RoadmapAndQuickWinsViewProps> = (
                 <span className="text-xs text-[#71717A]">Highest ROI & Low Friction</span>
               </div>
               <div className="space-y-3">
-                {roadmapTiers.immediate.map((item, idx) => (
+                {(roadmapTiers.immediate || []).map((item, idx) => (
                   <div key={idx} className="bg-white border border-[#E4E4E7] rounded-lg p-4 space-y-2 text-xs">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-sm text-[#111827]">{item.problem}</span>
@@ -123,7 +123,7 @@ export const RoadmapAndQuickWinsView: React.FC<RoadmapAndQuickWinsViewProps> = (
                 <span className="text-xs text-[#71717A]">Conversion & Performance Accelerators</span>
               </div>
               <div className="space-y-3">
-                {roadmapTiers.highImpact.map((item, idx) => (
+                {(roadmapTiers.highImpact || []).map((item, idx) => (
                   <div key={idx} className="bg-white border border-[#E4E4E7] rounded-lg p-4 space-y-2 text-xs">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-sm text-[#111827]">{item.problem}</span>
@@ -150,7 +150,7 @@ export const RoadmapAndQuickWinsView: React.FC<RoadmapAndQuickWinsViewProps> = (
                 <span className="text-xs text-[#71717A]">Design System & Scalable Tokens</span>
               </div>
               <div className="space-y-3">
-                {roadmapTiers.structural.map((item, idx) => (
+                {(roadmapTiers.structural || []).map((item, idx) => (
                   <div key={idx} className="bg-white border border-[#E4E4E7] rounded-lg p-4 space-y-2 text-xs">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-sm text-[#111827]">{item.problem}</span>
@@ -177,7 +177,7 @@ export const RoadmapAndQuickWinsView: React.FC<RoadmapAndQuickWinsViewProps> = (
                 <span className="text-xs text-[#71717A]">Delight & Memorable Craft</span>
               </div>
               <div className="space-y-3">
-                {roadmapTiers.experimental.map((item, idx) => (
+                {(roadmapTiers.experimental || []).map((item, idx) => (
                   <div key={idx} className="bg-white border border-[#E4E4E7] rounded-lg p-4 space-y-2 text-xs">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-sm text-[#111827]">{item.problem}</span>

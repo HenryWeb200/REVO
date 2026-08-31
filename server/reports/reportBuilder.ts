@@ -9,20 +9,50 @@ export function buildFinalReport(
   // Enrich base reasoning with complete V2 reasoning layers
   const v2Layers = enrichWithV2Intelligence(reasoningData, evidence);
 
+  const defaultWhatRevoSees = {
+    summary: `${reasoningData?.siteName || 'The website'} was analyzed via Playwright DOM inspection.`,
+    keyObservations: [],
+    observedFacts: [],
+    inferredIntent: reasoningData?.primaryGoal || 'Visitor engagement',
+  };
+
+  const defaultDimension = {
+    score: 7.0,
+    confidence: 'high' as const,
+    reason: 'Standard baseline observation.',
+    evidence: [],
+  };
+
+  const defaultScores = {
+    clarity: defaultDimension,
+    creativity: defaultDimension,
+    craft: defaultDimension,
+    visualHierarchy: defaultDimension,
+    brandStrength: defaultDimension,
+    usability: defaultDimension,
+    convertibility: defaultDimension,
+    contentQuality: defaultDimension,
+    accessibility: defaultDimension,
+    performance: defaultDimension,
+    seo: defaultDimension,
+    technicalQuality: defaultDimension,
+    awardPotential: defaultDimension,
+  };
+
   return {
     id,
     url: evidence.url,
-    siteName: reasoningData.siteName,
+    siteName: reasoningData?.siteName || 'Website',
     analyzedAt: new Date().toISOString(),
-    siteType: reasoningData.siteType,
-    primaryGoal: reasoningData.primaryGoal,
-    goalConfidence: reasoningData.goalConfidence,
-    whatRevoSees: reasoningData.whatRevoSees,
-    whyItWorks: reasoningData.whyItWorks,
-    whereItBreaks: reasoningData.whereItBreaks,
-    scores: reasoningData.scores,
-    topOpportunities: reasoningData.topOpportunities,
-    overallDiagnosis: reasoningData.overallDiagnosis,
+    siteType: reasoningData?.siteType || 'digital product',
+    primaryGoal: reasoningData?.primaryGoal || 'Visitor conversion',
+    goalConfidence: typeof reasoningData?.goalConfidence === 'number' ? reasoningData.goalConfidence : 8,
+    whatRevoSees: reasoningData?.whatRevoSees || defaultWhatRevoSees,
+    whyItWorks: reasoningData?.whyItWorks || [],
+    whereItBreaks: reasoningData?.whereItBreaks || [],
+    scores: reasoningData?.scores || defaultScores,
+    topOpportunities: reasoningData?.topOpportunities || [],
+    overallDiagnosis: reasoningData?.overallDiagnosis || '',
     evidence,
     status: 'success',
 

@@ -17,6 +17,7 @@ import {
   Terminal,
   Layers,
   History,
+  X,
 } from 'lucide-react';
 import {
   StructuredAnalysisResponse,
@@ -35,6 +36,15 @@ import { BeforeAfterCompareView } from './components/BeforeAfterCompareView';
 import { AskRevoDrawer } from './components/AskRevoDrawer';
 import { AiInstructionModal } from './components/AiInstructionModal';
 import { ProjectMemoryBar } from './components/ProjectMemoryBar';
+import { AnalysisHistoryView } from './components/AnalysisHistoryView';
+
+// History Storage Utilities
+import {
+  getHistory,
+  saveToHistory,
+  deleteFromHistory,
+  clearAllHistory,
+} from './lib/historyStorage';
 
 type V2Tab =
   | 'overview'
@@ -44,7 +54,8 @@ type V2Tab =
   | 'show_me_why'
   | 'roadmap'
   | 'variety'
-  | 'compare';
+  | 'compare'
+  | 'history';
 
 export default function App() {
   const [url, setUrl] = useState('');
@@ -54,6 +65,12 @@ export default function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [result, setResult] = useState<StructuredAnalysisResponse | null>(null);
   const [activeTab, setActiveTab] = useState<V2Tab>('overview');
+
+  // History State
+  const [history, setHistory] = useState<StructuredAnalysisResponse[]>([]);
+  const [compareTargetItem, setCompareTargetItem] = useState<StructuredAnalysisResponse | null>(null);
+  const [historyRefreshTrigger, setHistoryRefreshTrigger] = useState(0);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
   // Modals & Drawers
   const [isAskRevoOpen, setIsAskRevoOpen] = useState(false);
@@ -67,21 +84,84 @@ export default function App() {
     { label: 'resend.com', fullUrl: 'https://resend.com' },
   ];
 
-  // Save history to localStorage
-  const saveToHistory = (item: StructuredAnalysisResponse) => {
-    try {
-      const stored = localStorage.getItem('revo_analysis_history');
-      const list = stored ? JSON.parse(stored) : [];
-      const filtered = list.filter((x: any) => x.id !== item.id);
-      filtered.unshift({
-        id: item.id,
-        url: item.url,
-        siteName: item.siteName,
-        timestamp: item.analyzedAt,
-      });
-      localStorage.setItem('revo_analysis_history', JSON.stringify(filtered.slice(0, 10)));
-    } catch {
-      // ignore
+  // Load history on mount
+  useEffect(() => {
+    const list = getHistory();
+    setHistory(list);
+  }, [historyRefreshTrigger]);
+
+  const handleSaveResultToHistory = (item: StructuredAnalysisResponse) => {
+    const updated = saveToHistory(item);
+    setHistory(updated);
+    setHistoryRefreshTrigger((prev) => prev + 1);
+  };
+
+  const handleSelectFromHistory = (item: StructuredAnalysisResponse) => {
+    setResult(item);
+    setUrl(item.url);
+    setAnalysisState('COMPLETE');
+    setActiveTab('overview');
+    setIsHistoryModalOpen(false);
+    setTimeout(() => {
+      resultRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
+
+  const handleCompareWithHistoricalItem = (item: StructuredAnalysisResponse) => {
+    setCompareTargetItem(item);
+    setActiveTab('compare');
+    setIsHistoryModalOpen(false);
+    setTimeout(() => {
+      resultRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
+
+  const handleCompareTwoSelected = (
+    itemA: StructuredAnalysisResponse,
+    itemB: StructuredAnalysisResponse
+  ) => {
+    setResult(itemA);
+    setUrl(itemA.url);
+    setAnalysisState('COMPLETE');
+    setCompareTargetItem(itemB);
+    setActiveTab('compare');
+    setIsHistoryModalOpen(false);
+    setTimeout(() => {
+      resultRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
+
+  const handleDeleteHistoryItem = (id: string) => {
+    const updated = deleteFromHistory(id);
+    setHistory(updated);
+    setHistoryRefreshTrigger((prev) => prev + 1);
+    if (result && result.id === id) {
+      // If current result was deleted, keep it in view or handle gracefully
+    }
+  };
+
+  const handleClearHistory = () => {
+    clearAllHistory();
+    setHistory([]);
+    setHistoryRefreshTrigger((prev) => prev + 1);
+  };
+
+  const handleOpenHistory = () => {
+    if (result) {
+      setActiveTab('history');
+      setTimeout(() => {
+        resultRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } else if (history.length > 0) {
+      setResult(history[0]);
+      setUrl(history[0].url);
+      setAnalysisState('COMPLETE');
+      setActiveTab('history');
+      setTimeout(() => {
+        resultRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } else {
+      setIsHistoryModalOpen(true);
     }
   };
 
@@ -162,14 +242,17 @@ export default function App() {
       }
 
       const resPayload = await res.json();
-      const data: StructuredAnalysisResponse = (resPayload && resPayload.data && resPayload.data.scores) ? resPayload.data : resPayload;
+      const data: StructuredAnalysisResponse =
+        resPayload && resPayload.data && resPayload.data.scores
+          ? resPayload.data
+          : resPayload;
 
       setAnalysisState('SYNTHESIZING');
       setStatusMessage('Structuring V2 Diagnostic Intelligence & Design DNA...');
 
       setTimeout(() => {
         setResult(data);
-        saveToHistory(data);
+        handleSaveResultToHistory(data);
         setAnalysisState('COMPLETE');
         setStatusMessage('');
 
@@ -185,16 +268,31 @@ export default function App() {
 
       console.error('Analysis error:', err);
       setAnalysisState('ERROR');
-      
+
       let displayMsg = 'Failed to inspect website. Please check the URL and try again.';
       if (err instanceof Error) {
-        if (err.name === 'AbortError' || err.message.includes('aborted') || err.message.includes('signal is aborted')) {
+        if (
+          err.name === 'AbortError' ||
+          err.message.includes('aborted') ||
+          err.message.includes('signal is aborted')
+        ) {
           displayMsg = 'Analysis timed out. The target website took too long to respond. Please try again.';
-        } else if (err.message === 'Failed to fetch' || err.message.includes('Failed to fetch')) {
+        } else if (
+          err.message === 'Failed to fetch' ||
+          err.message.includes('Failed to fetch')
+        ) {
           displayMsg = 'Could not reach analysis service. Please check your connection or retry in a moment.';
-        } else if (err.message.includes('503') || err.message.includes('high demand') || err.message.includes('UNAVAILABLE')) {
+        } else if (
+          err.message.includes('503') ||
+          err.message.includes('high demand') ||
+          err.message.includes('UNAVAILABLE')
+        ) {
           displayMsg = 'The AI diagnostic engine is currently experiencing high traffic. Please retry in a moment.';
-        } else if (err.message.includes('429') || err.message.includes('quota') || err.message.includes('RESOURCE_EXHAUSTED')) {
+        } else if (
+          err.message.includes('429') ||
+          err.message.includes('quota') ||
+          err.message.includes('RESOURCE_EXHAUSTED')
+        ) {
           displayMsg = 'Rate limit reached. Please wait a few moments before running another analysis.';
         } else {
           displayMsg = err.message;
@@ -218,15 +316,22 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const isAnalyzing = ['VALIDATING', 'OBSERVING', 'READING', 'MEASURING', 'REASONING', 'SYNTHESIZING'].includes(analysisState);
+  const isAnalyzing = [
+    'VALIDATING',
+    'OBSERVING',
+    'READING',
+    'MEASURING',
+    'REASONING',
+    'SYNTHESIZING',
+  ].includes(analysisState);
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#111827] flex flex-col font-sans selection:bg-blue-600 selection:text-white">
       {/* ─────────────────────────────────────────────────────────────
-          01 — ONE VIEWPORT HOMEPAGE COMPOSITION (Fits 100svh cleanly)
+          01 — ONE VIEWPORT HOMEPAGE COMPOSITION
           ───────────────────────────────────────────────────────────── */}
       <section className="w-full h-[100svh] min-h-0 flex flex-col justify-between px-4 sm:px-8 lg:px-12 pt-3 sm:pt-4 pb-3 sm:pb-4 max-w-[1360px] mx-auto select-none overflow-hidden">
-        {/* Header / Brand */}
+        {/* Header / Brand & Global Controls */}
         <header className="w-full flex items-center justify-between shrink-0">
           <div className="flex items-center space-x-2.5 cursor-pointer" onClick={handleReset}>
             <div className="w-6.5 h-6.5 bg-[#111827] rounded-[5px] flex items-center justify-center text-white font-display font-bold text-xs tracking-wider">
@@ -238,6 +343,20 @@ export default function App() {
           </div>
 
           <div className="flex items-center space-x-2.5 text-xs text-[#71717A]">
+            {/* History Trigger Button */}
+            <button
+              onClick={handleOpenHistory}
+              className="px-2.5 py-1.5 rounded-lg bg-white border border-[#E4E4E7] hover:border-[#1D63ED] text-[#111827] font-semibold text-xs inline-flex items-center space-x-1.5 transition-colors cursor-pointer shadow-xs"
+            >
+              <History className="w-3.5 h-3.5 text-[#1D63ED]" />
+              <span>History</span>
+              {history.length > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-[#1D63ED] text-white text-[10px] font-bold">
+                  {history.length}
+                </span>
+              )}
+            </button>
+
             <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-md bg-[#F4F4F5] border border-[#E4E4E7] text-[#52525B] font-medium text-[11px]">
               V2 Reasoning Platform
             </span>
@@ -354,7 +473,12 @@ export default function App() {
       {/* ─────────────────────────────────────────────────────────────
           02 — PROJECT MEMORY & RECENT SESSIONS BAR
           ───────────────────────────────────────────────────────────── */}
-      {result && <ProjectMemoryBar currentId={result.id} />}
+      <ProjectMemoryBar
+        currentId={result?.id}
+        onSelectSavedAnalysis={handleSelectFromHistory}
+        onOpenHistoryTab={handleOpenHistory}
+        refreshTrigger={historyRefreshTrigger}
+      />
 
       {/* ─────────────────────────────────────────────────────────────
           03 — POST-ANALYSIS REVO V2 REASONING WORKSPACE
@@ -519,6 +643,19 @@ export default function App() {
                   <Columns className="w-3.5 h-3.5" />
                   <span>Compare & DNA Fusion</span>
                 </button>
+
+                {/* History Tab */}
+                <button
+                  onClick={() => setActiveTab('history')}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold inline-flex items-center space-x-2 transition-colors cursor-pointer ${
+                    activeTab === 'history'
+                      ? 'bg-[#111827] text-white shadow-xs'
+                      : 'text-[#71717A] hover:text-[#111827] hover:bg-[#FAFAFA]'
+                  }`}
+                >
+                  <History className="w-3.5 h-3.5" />
+                  <span>History ({history.length})</span>
+                </button>
               </nav>
             </div>
 
@@ -542,29 +679,34 @@ export default function App() {
                   </div>
 
                   <p className="text-base sm:text-xl font-normal text-[#111827] leading-relaxed max-w-4xl">
-                    {result.whatRevoSees.summary}
+                    {result.whatRevoSees?.summary || 'Web experience observed via DOM analysis.'}
                   </p>
 
-                  {result.whatRevoSees.keyObservations && result.whatRevoSees.keyObservations.length > 0 && (
-                    <div className="pt-4 border-t border-[#E4E4E7] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {result.whatRevoSees.keyObservations.map((obs, idx) => (
-                        <div
-                          key={idx}
-                          className="p-4 bg-white border border-[#E4E4E7] rounded-xl text-xs text-[#52525B] leading-relaxed flex items-start space-x-2.5"
-                        >
-                          <span className="font-semibold text-[#111827] shrink-0">0{idx + 1}</span>
-                          <span>{obs}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  {result.whatRevoSees?.keyObservations &&
+                    result.whatRevoSees.keyObservations.length > 0 && (
+                      <div className="pt-4 border-t border-[#E4E4E7] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {result.whatRevoSees.keyObservations.map((obs, idx) => (
+                          <div
+                            key={idx}
+                            className="p-4 bg-white border border-[#E4E4E7] rounded-xl text-xs text-[#52525B] leading-relaxed flex items-start space-x-2.5"
+                          >
+                            <span className="font-semibold text-[#111827] shrink-0">
+                              0{idx + 1}
+                            </span>
+                            <span>{obs}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                 </div>
 
                 {/* Visual Viewport Screenshot */}
-                {result.evidence.screenshotDesktopBase64 && (
+                {result.evidence?.screenshotDesktopBase64 && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between text-xs text-[#71717A]">
-                      <span className="font-medium text-[#111827]">Observed Desktop Viewport (1440 × 900)</span>
+                      <span className="font-medium text-[#111827]">
+                        Observed Desktop Viewport (1440 × 900)
+                      </span>
                       <span>Captured via Playwright Observation Layer</span>
                     </div>
 
@@ -605,7 +747,7 @@ export default function App() {
                       </h3>
                     </div>
                     <div className="space-y-4">
-                      {result.whyItWorks.map((item, idx) => (
+                      {(result.whyItWorks || []).map((item, idx) => (
                         <div
                           key={idx}
                           className="bg-[#FAFAFA] border border-[#E4E4E7] rounded-xl p-5 space-y-3"
@@ -614,7 +756,9 @@ export default function App() {
                             <CheckCircle2 className="w-4 h-4 text-[#1D63ED] shrink-0" />
                             <span>{item.title}</span>
                           </div>
-                          <p className="text-xs text-[#52525B] leading-relaxed">{item.explanation}</p>
+                          <p className="text-xs text-[#52525B] leading-relaxed">
+                            {item.explanation}
+                          </p>
                         </div>
                       ))}
                     </div>
@@ -631,7 +775,7 @@ export default function App() {
                       </h3>
                     </div>
                     <div className="space-y-4">
-                      {result.whereItBreaks.map((item, idx) => (
+                      {(result.whereItBreaks || []).map((item, idx) => (
                         <div
                           key={idx}
                           className="bg-[#FAFAFA] border border-[#E4E4E7] rounded-xl p-5 space-y-3"
@@ -640,7 +784,9 @@ export default function App() {
                             <AlertTriangle className="w-4 h-4 text-[#EF4444] shrink-0" />
                             <span>{item.title}</span>
                           </div>
-                          <p className="text-xs text-[#52525B] leading-relaxed">{item.explanation}</p>
+                          <p className="text-xs text-[#52525B] leading-relaxed">
+                            {item.explanation}
+                          </p>
                         </div>
                       ))}
                     </div>
@@ -659,12 +805,14 @@ export default function App() {
                       </h3>
                     </div>
                     <span className="text-xs text-[#52525B] font-medium">
-                      {Object.keys(result.scores).length} Independent Dimensions
+                      {result.scores ? Object.keys(result.scores).length : 0} Independent Dimensions
                     </span>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {(Object.entries(result.scores) as [string, DimensionScore][]).map(([key, dim]) => {
+                    {(
+                      Object.entries(result.scores || {}) as [string, DimensionScore][]
+                    ).map(([key, dim]) => {
                       const formatName = key
                         .replace(/([A-Z])/g, ' $1')
                         .replace(/^./, (str) => str.toUpperCase());
@@ -696,18 +844,14 @@ export default function App() {
               </div>
             )}
 
-            {/* ─────────────────────────────────────────────────────────────
-                TAB 2: EXECUTIVE SUMMARY
-                ───────────────────────────────────────────────────────────── */}
+            {/* TAB 2: EXECUTIVE SUMMARY */}
             {activeTab === 'executive' && (
               <div className="space-y-8">
                 <ExecutiveSummarySection result={result} />
               </div>
             )}
 
-            {/* ─────────────────────────────────────────────────────────────
-                TAB 3: DESIGN DNA & FAMILIARITY
-                ───────────────────────────────────────────────────────────── */}
+            {/* TAB 3: DESIGN DNA & FAMILIARITY */}
             {activeTab === 'dna' && (
               <DesignDnaView
                 dna={result.designDna}
@@ -717,9 +861,7 @@ export default function App() {
               />
             )}
 
-            {/* ─────────────────────────────────────────────────────────────
-                TAB 4: ROOT CAUSE GRAPH
-                ───────────────────────────────────────────────────────────── */}
+            {/* TAB 4: ROOT CAUSE GRAPH */}
             {activeTab === 'root_causes' && (
               <RootCauseGraphView
                 rootCauses={result.rootCauses}
@@ -728,9 +870,7 @@ export default function App() {
               />
             )}
 
-            {/* ─────────────────────────────────────────────────────────────
-                TAB 5: SHOW ME WHY
-                ───────────────────────────────────────────────────────────── */}
+            {/* TAB 5: SHOW ME WHY */}
             {activeTab === 'show_me_why' && (
               <ShowMeWhyInspector
                 items={result.showMeWhy}
@@ -739,9 +879,7 @@ export default function App() {
               />
             )}
 
-            {/* ─────────────────────────────────────────────────────────────
-                TAB 6: ROADMAP & QUICK WINS
-                ───────────────────────────────────────────────────────────── */}
+            {/* TAB 6: ROADMAP & QUICK WINS */}
             {activeTab === 'roadmap' && (
               <RoadmapAndQuickWinsView
                 quickWins={result.quickWins}
@@ -750,9 +888,7 @@ export default function App() {
               />
             )}
 
-            {/* ─────────────────────────────────────────────────────────────
-                TAB 7: VARIETY ENGINE & DESIGN NEW
-                ───────────────────────────────────────────────────────────── */}
+            {/* TAB 7: VARIETY ENGINE & DESIGN NEW */}
             {activeTab === 'variety' && (
               <VarietyEngineView
                 varietyOptions={result.varietyOptions}
@@ -761,11 +897,25 @@ export default function App() {
               />
             )}
 
-            {/* ─────────────────────────────────────────────────────────────
-                TAB 8: BEFORE / AFTER & COMPARATOR
-                ───────────────────────────────────────────────────────────── */}
+            {/* TAB 8: BEFORE / AFTER & COMPARATOR */}
             {activeTab === 'compare' && (
-              <BeforeAfterCompareView currentAnalysis={result} />
+              <BeforeAfterCompareView
+                currentAnalysis={result}
+                initialCompareAnalysis={compareTargetItem}
+              />
+            )}
+
+            {/* TAB 9: HISTORY SECTION */}
+            {activeTab === 'history' && (
+              <AnalysisHistoryView
+                history={history}
+                currentAnalysisId={result.id}
+                onSelectAnalysis={handleSelectFromHistory}
+                onCompareWithCurrent={handleCompareWithHistoricalItem}
+                onCompareTwoSelected={handleCompareTwoSelected}
+                onDeleteAnalysis={handleDeleteHistoryItem}
+                onClearHistory={handleClearHistory}
+              />
             )}
 
             {/* Bottom Actions Bar */}
@@ -783,8 +933,41 @@ export default function App() {
       )}
 
       {/* ─────────────────────────────────────────────────────────────
-          MODALS & COPILOT DRAWERS
+          MODALS & DRAWERS
           ───────────────────────────────────────────────────────────── */}
+
+      {/* Standalone History Modal (when triggered before an active result exists) */}
+      {isHistoryModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+          <div className="bg-white rounded-2xl border border-[#E4E4E7] shadow-2xl w-full max-w-5xl p-6 sm:p-8 space-y-6 my-auto max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-[#E4E4E7] pb-4">
+              <div className="flex items-center space-x-2">
+                <History className="w-5 h-5 text-[#1D63ED]" />
+                <h3 className="font-display font-bold text-xl text-[#111827]">
+                  Analysis History & Project Memory
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsHistoryModalOpen(false)}
+                className="p-1.5 text-[#71717A] hover:text-[#111827] rounded-lg hover:bg-[#F4F4F5]"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <AnalysisHistoryView
+              history={history}
+              currentAnalysisId={result?.id}
+              onSelectAnalysis={handleSelectFromHistory}
+              onCompareWithCurrent={handleCompareWithHistoricalItem}
+              onCompareTwoSelected={handleCompareTwoSelected}
+              onDeleteAnalysis={handleDeleteHistoryItem}
+              onClearHistory={handleClearHistory}
+            />
+          </div>
+        </div>
+      )}
+
       {result && (
         <>
           <AskRevoDrawer

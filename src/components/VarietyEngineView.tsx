@@ -118,7 +118,7 @@ export const VarietyEngineView: React.FC<VarietyEngineViewProps> = ({
                       <span>What Changes (Transformations)</span>
                     </div>
                     <ul className="space-y-2">
-                      {currentOpt.keyChanges.map((change, idx) => (
+                      {(currentOpt.keyChanges || []).map((change, idx) => (
                         <li key={idx} className="flex items-start space-x-2 text-[#52525B]">
                           <ArrowRight className="w-3.5 h-3.5 text-[#1D63ED] shrink-0 mt-0.5" />
                           <span>{change}</span>
@@ -134,7 +134,7 @@ export const VarietyEngineView: React.FC<VarietyEngineViewProps> = ({
                       <span>What Stays (Preserved Brand DNA)</span>
                     </div>
                     <ul className="space-y-2">
-                      {currentOpt.preservedIdentity.map((item, idx) => (
+                      {(currentOpt.preservedIdentity || []).map((item, idx) => (
                         <li key={idx} className="flex items-start space-x-2 text-[#52525B]">
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
                           <span>{item}</span>
@@ -175,7 +175,7 @@ export const VarietyEngineView: React.FC<VarietyEngineViewProps> = ({
             </span>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {designNew.corePillars.map((pillar, idx) => (
+              {(designNew.corePillars || []).map((pillar, idx) => (
                 <div key={idx} className="bg-white border border-[#E4E4E7] rounded-xl p-5 space-y-3 text-xs">
                   <span className="font-bold text-sm text-[#111827] block border-b border-[#F4F4F5] pb-2">
                     {pillar.area}

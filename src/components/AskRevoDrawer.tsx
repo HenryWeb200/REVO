@@ -22,13 +22,23 @@ export const AskRevoDrawer: React.FC<AskRevoDrawerProps> = ({
 }) => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'welcome',
-      role: 'assistant',
-      content: `Hello! I am REVO's grounded reasoning copilot. I have full context on ${analysis.siteName}'s verified DOM structure, load latency (${analysis.evidence.loadTimeMs}ms), Design DNA, and diagnostic findings. Ask me anything about how to optimize or redesign this website.`,
-    },
-  ]);
+
+  const siteName = analysis?.siteName || 'this website';
+  const loadTimeMs = analysis?.evidence?.loadTimeMs ?? 0;
+
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+
+  React.useEffect(() => {
+    if (analysis) {
+      setMessages([
+        {
+          id: 'welcome',
+          role: 'assistant',
+          content: `Hello! I am REVO's grounded reasoning copilot. I have full context on ${siteName}'s verified DOM structure, load latency (${loadTimeMs}ms), Design DNA, and diagnostic findings. Ask me anything about how to optimize or redesign this website.`,
+        },
+      ]);
+    }
+  }, [analysis?.id, siteName, loadTimeMs]);
 
   if (!isOpen) return null;
 

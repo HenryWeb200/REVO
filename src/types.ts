@@ -124,6 +124,8 @@ export interface WebsiteEvidencePackage {
     fcp?: string;
     lcp?: string;
     cls?: string;
+    tbt?: string;
+    speedIndex?: string;
   };
   screenshotDesktopBase64?: string;
   screenshotFullBase64?: string;

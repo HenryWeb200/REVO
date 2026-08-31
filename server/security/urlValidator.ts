@@ -255,3 +255,51 @@ export async function validateAndNormalizeUrl(rawInput: string): Promise<UrlVali
     normalizedUrl: parsed.href,
   };
 }
+
+/**
+ * Synchronous check for subresource requests (images, scripts, iframes) in Playwright route interception.
+ * Returns true if URL is restricted (SSRF risk), false if safe.
+ */
+export function isUrlRestrictedSync(rawUrl: string): boolean {
+  if (!rawUrl || typeof rawUrl !== 'string') return true;
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    return true;
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:' && parsed.protocol !== 'data:') {
+    return true;
+  }
+
+  if (parsed.protocol === 'data:') return false;
+
+  const hostname = parsed.hostname.toLowerCase();
+  if (
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '0.0.0.0' ||
+    hostname.endsWith('.localhost') ||
+    hostname.endsWith('.local') ||
+    hostname.endsWith('.internal') ||
+    hostname.endsWith('.lan') ||
+    hostname === 'metadata.google.internal' ||
+    hostname === 'instance-data' ||
+    hostname === '169.254.169.254'
+  ) {
+    return true;
+  }
+
+  const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+  if (ipv4Regex.test(hostname)) {
+    if (isPrivateOrDisallowedIPv4(hostname)) return true;
+  }
+
+  if (hostname.startsWith('[') && hostname.endsWith(']')) {
+    const rawIpv6 = hostname.slice(1, -1);
+    if (isPrivateOrDisallowedIPv6(rawIpv6)) return true;
+  }
+
+  return false;
+}

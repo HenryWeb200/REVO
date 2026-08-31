@@ -3,7 +3,7 @@ import * as cheerio from 'cheerio';
 import fs from 'fs';
 import { WebsiteEvidencePackage, InitialVsRenderedStats } from '../../src/types.js';
 import { REVO_CONFIG } from '../config.js';
-import { validateAndNormalizeUrl } from '../security/urlValidator.js';
+import { validateAndNormalizeUrl, isUrlRestrictedSync } from '../security/urlValidator.js';
 import { ConcurrencyGate } from '../security/rateLimiter.js';
 
 let isPlaywrightAvailable: boolean | null = null;
@@ -141,25 +141,32 @@ async function runPlaywrightExtraction(url: string, startTime: number, analysisI
       consoleErrors.push(err.message.slice(0, 160));
     });
 
-    // 4. Redirect Security Guard: Intercept navigation and verify redirect destinations
+    // 4. Redirect & Subresource Security Guard: Intercept all network requests to block SSRF and subresource probing
     let redirectCount = 0;
     let initialRawHtml = '';
 
     await page.route('**/*', async (route) => {
       const request = route.request();
+      const reqUrl = request.url();
+
+      // Check subresource URLs (images, scripts, iframes, fetch) for private/local IP ranges
+      if (isUrlRestrictedSync(reqUrl)) {
+        console.warn(`[REVO Browser] Blocked restricted subresource request: ${reqUrl.slice(0, 100)}`);
+        return route.abort('blockedbyclient');
+      }
+
       if (request.isNavigationRequest()) {
-        const destUrl = request.url();
         redirectCount++;
 
         if (redirectCount > REVO_CONFIG.PLAYWRIGHT.MAX_REDIRECTS) {
-          console.warn(`[REVO Browser] Redirect loop exceeded limit (${redirectCount}) on ${destUrl}`);
+          console.warn(`[REVO Browser] Redirect loop exceeded limit (${redirectCount}) on ${reqUrl}`);
           return route.abort('blockedbyclient');
         }
 
         // Validate destination to protect against SSRF across redirects
-        const destValidation = await validateAndNormalizeUrl(destUrl);
+        const destValidation = await validateAndNormalizeUrl(reqUrl);
         if (!destValidation.isValid) {
-          console.warn(`[REVO Browser] Blocked unsafe redirect target: ${destUrl} (${destValidation.error})`);
+          console.warn(`[REVO Browser] Blocked unsafe redirect target: ${reqUrl} (${destValidation.error})`);
           return route.abort('blockedbyclient');
         }
       }

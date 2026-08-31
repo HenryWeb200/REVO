@@ -841,9 +841,10 @@ export function enrichWithV2Intelligence(
   const biggestStrength = base.whyItWorks[0]?.title || 'Direct Value Proposition Clarity';
   const biggestWeakness = base.whereItBreaks[0]?.title || 'Call-to-Action Hierarchy Competition';
   const biggestOpportunity = base.topOpportunities[0]?.recommendation || 'Elevate primary CTA contrast and streamline feature scanning.';
-  const mostSignificantTechnicalRisk = evidence.loadTimeMs > 1500
-    ? `Document load latency (${evidence.loadTimeMs}ms) risks mobile bounce rates before first visual engagement.`
-    : `Asset weight across ${evidence.totalImages} images requires disciplined preloading to guarantee 0ms layout shift.`;
+  const loadMs = evidence?.loadTimeMs ?? 0;
+  const mostSignificantTechnicalRisk = loadMs > 1500
+    ? `Document load latency (${loadMs}ms) risks mobile bounce rates before first visual engagement.`
+    : `Asset weight across ${evidence?.totalImages ?? 0} images requires disciplined preloading to guarantee 0ms layout shift.`;
 
   const executiveSummary: ExecutiveSummaryV2 = {
     overallHealth: `${siteName} exhibits a mature, high-clarity digital presence with strong messaging alignment around "${h1.slice(0, 45)}...".`,

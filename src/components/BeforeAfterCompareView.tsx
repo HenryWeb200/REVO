@@ -1,18 +1,62 @@
-import React, { useState } from 'react';
-import { Columns, ArrowRight, Sparkles, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Columns, ArrowRight, Sparkles, CheckCircle2, AlertTriangle, History, Clock } from 'lucide-react';
 import { StructuredAnalysisResponse, BeforeAfterComparisonV2 } from '../types';
+import { getHistory } from '../lib/historyStorage';
 
 interface BeforeAfterCompareViewProps {
   currentAnalysis: StructuredAnalysisResponse;
+  initialCompareAnalysis?: StructuredAnalysisResponse | null;
 }
 
 export const BeforeAfterCompareView: React.FC<BeforeAfterCompareViewProps> = ({
   currentAnalysis,
+  initialCompareAnalysis,
 }) => {
   const [compareUrl, setCompareUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [comparisonResult, setComparisonResult] = useState<BeforeAfterComparisonV2 | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [historyItems, setHistoryItems] = useState<StructuredAnalysisResponse[]>([]);
+
+  useEffect(() => {
+    const list = getHistory().filter((x) => x.id !== currentAnalysis.id);
+    setHistoryItems(list);
+  }, [currentAnalysis.id]);
+
+  // If an initialCompareAnalysis is provided (e.g. triggered from History view), automatically run comparison
+  useEffect(() => {
+    if (initialCompareAnalysis && initialCompareAnalysis.id !== currentAnalysis.id) {
+      runComparisonWithObject(initialCompareAnalysis);
+    }
+  }, [initialCompareAnalysis]);
+
+  const runComparisonWithObject = async (comparisonAnalysis: StructuredAnalysisResponse) => {
+    setLoading(true);
+    setError(null);
+    setCompareUrl(comparisonAnalysis.url);
+
+    try {
+      const compareRes = await fetch('/api/compare', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          baseAnalysis: currentAnalysis,
+          comparisonAnalysis,
+        }),
+      });
+
+      if (!compareRes.ok) {
+        throw new Error('Failed to compute DNA comparison matrix');
+      }
+
+      const compData: BeforeAfterComparisonV2 = await compareRes.json();
+      setComparisonResult(compData);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An error occurred during comparison.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const sampleComparisonTargets = [
     { name: 'Stripe', url: 'https://stripe.com' },
@@ -43,24 +87,9 @@ export const BeforeAfterCompareView: React.FC<BeforeAfterCompareViewProps> = ({
       const comparisonAnalysis: StructuredAnalysisResponse = analyzePayload.data || analyzePayload;
 
       // 2. Compute comparison & DNA fusion
-      const compareRes = await fetch('/api/compare', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          baseAnalysis: currentAnalysis,
-          comparisonAnalysis,
-        }),
-      });
-
-      if (!compareRes.ok) {
-        throw new Error('Failed to compute DNA comparison matrix');
-      }
-
-      const compData: BeforeAfterComparisonV2 = await compareRes.json();
-      setComparisonResult(compData);
+      await runComparisonWithObject(comparisonAnalysis);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'An error occurred during comparison.');
-    } finally {
       setLoading(false);
     }
   };
@@ -77,9 +106,42 @@ export const BeforeAfterCompareView: React.FC<BeforeAfterCompareViewProps> = ({
           Before / After & Reference Comparator
         </h3>
         <p className="text-sm text-[#71717A] max-w-3xl">
-          Compare {currentAnalysis.siteName} against a benchmark site (e.g. Stripe, Linear) or a previous version snapshot to discover shared principles, distinct advantages, and DNA fusion opportunities.
+          Compare {currentAnalysis.siteName} against a historical analysis, a benchmark site (e.g. Stripe, Linear), or a previous snapshot to discover shared principles, distinct advantages, and DNA fusion opportunities.
         </p>
       </div>
+
+      {/* Quick Select from History Bar */}
+      {historyItems.length > 0 && (
+        <div className="bg-white border border-[#E4E4E7] rounded-2xl p-5 space-y-3">
+          <div className="flex items-center space-x-2 text-xs text-[#111827] font-semibold">
+            <History className="w-4 h-4 text-[#1D63ED]" />
+            <span>Compare against a previous run from History ({historyItems.length}):</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5">
+            {historyItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => runComparisonWithObject(item)}
+                disabled={loading}
+                className="p-3 rounded-xl border border-[#E4E4E7] hover:border-[#1D63ED] bg-[#FAFAFA] hover:bg-blue-50/20 text-left transition-all cursor-pointer disabled:opacity-50 space-y-1 group"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs text-[#111827] group-hover:text-[#1D63ED] truncate max-w-[130px]">
+                    {item.siteName || item.url}
+                  </span>
+                  <span className="text-[10px] text-[#A1A1AA]">
+                    {item.scores?.clarity?.score ? `${item.scores.clarity.score.toFixed(1)}/10` : ''}
+                  </span>
+                </div>
+                <div className="text-[11px] text-[#71717A] truncate">
+                  {item.url}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Comparison Input Bar */}
       <div className="bg-[#FAFAFA] border border-[#E4E4E7] rounded-2xl p-6 space-y-4">
@@ -157,21 +219,21 @@ export const BeforeAfterCompareView: React.FC<BeforeAfterCompareViewProps> = ({
               <div className="flex items-center justify-between border-b border-[#E4E4E7] pb-3">
                 <div>
                   <span className="text-[10px] font-bold uppercase text-[#71717A] block">Base Site</span>
-                  <h4 className="font-bold text-lg text-[#111827]">{comparisonResult.baseSite.name}</h4>
+                  <h4 className="font-bold text-lg text-[#111827]">{comparisonResult.baseSite?.name}</h4>
                 </div>
                 <div className="text-right">
                   <span className="text-xs text-[#71717A] block">Clarity Score</span>
                   <span className="font-display font-extrabold text-lg text-[#111827]">
-                    {comparisonResult.baseSite.clarityScore.toFixed(1)}/10
+                    {(comparisonResult.baseSite?.clarityScore ?? 0).toFixed(1)}/10
                   </span>
                 </div>
               </div>
               <p className="text-xs text-[#52525B] font-mono bg-white p-3 rounded-lg border border-[#E4E4E7]">
-                {comparisonResult.baseSite.dnaSummary}
+                {comparisonResult.baseSite?.dnaSummary}
               </p>
               <div className="space-y-1.5 text-xs">
                 <span className="font-semibold text-emerald-700 block">Unique Strengths:</span>
-                {comparisonResult.strengthsComparison.baseAdvantage.map((adv, idx) => (
+                {(comparisonResult.strengthsComparison?.baseAdvantage || []).map((adv, idx) => (
                   <div key={idx} className="flex items-center space-x-1.5 text-[#52525B]">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                     <span>{adv}</span>
@@ -185,21 +247,21 @@ export const BeforeAfterCompareView: React.FC<BeforeAfterCompareViewProps> = ({
               <div className="flex items-center justify-between border-b border-[#E4E4E7] pb-3">
                 <div>
                   <span className="text-[10px] font-bold uppercase text-[#71717A] block">Benchmark Site</span>
-                  <h4 className="font-bold text-lg text-[#111827]">{comparisonResult.comparisonSite.name}</h4>
+                  <h4 className="font-bold text-lg text-[#111827]">{comparisonResult.comparisonSite?.name}</h4>
                 </div>
                 <div className="text-right">
                   <span className="text-xs text-[#71717A] block">Clarity Score</span>
                   <span className="font-display font-extrabold text-lg text-[#111827]">
-                    {comparisonResult.comparisonSite.clarityScore.toFixed(1)}/10
+                    {(comparisonResult.comparisonSite?.clarityScore ?? 0).toFixed(1)}/10
                   </span>
                 </div>
               </div>
               <p className="text-xs text-[#52525B] font-mono bg-white p-3 rounded-lg border border-[#E4E4E7]">
-                {comparisonResult.comparisonSite.dnaSummary}
+                {comparisonResult.comparisonSite?.dnaSummary}
               </p>
               <div className="space-y-1.5 text-xs">
                 <span className="font-semibold text-emerald-700 block">Benchmark Advantages:</span>
-                {comparisonResult.strengthsComparison.comparisonAdvantage.map((adv, idx) => (
+                {(comparisonResult.strengthsComparison?.comparisonAdvantage || []).map((adv, idx) => (
                   <div key={idx} className="flex items-center space-x-1.5 text-[#52525B]">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                     <span>{adv}</span>
@@ -216,7 +278,7 @@ export const BeforeAfterCompareView: React.FC<BeforeAfterCompareViewProps> = ({
               <span>DNA Fusion & Cross-Pollination Opportunities</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-              {comparisonResult.fusionOpportunities.map((opp, idx) => (
+              {(comparisonResult.fusionOpportunities || []).map((opp, idx) => (
                 <div key={idx} className="bg-white border border-[#E4E4E7] rounded-xl p-4 space-y-1.5">
                   <span className="font-bold text-[#111827] block">Fusion Opportunity 0{idx + 1}</span>
                   <p className="text-[#52525B] leading-relaxed">{opp}</p>

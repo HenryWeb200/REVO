@@ -7,6 +7,7 @@ export const config = {
 interface ParsedRequestData {
   url?: string;
   ownerId?: string;
+  idempotencyKey?: string;
 }
 
 async function extractRequestBody(req: any): Promise<ParsedRequestData> {
@@ -70,8 +71,11 @@ async function extractRequestBody(req: any): Promise<ParsedRequestData> {
 function mapStageToStatusCode(stage: string, err: any): number {
   if (stage === 'REQUEST_VALIDATION') return 400;
   if (stage === 'URL_VALIDATION') return 422;
+  if (stage === 'CREDIT_CHECK' || err?.isCreditError === true) return 402;
+  if (stage === 'CONCURRENCY_LIMIT' || stage === 'RATE_LIMIT' || stage === 'QUOTA_EXHAUSTION') return 429;
   if (err?.isTimeout === true || stage === 'TIMEOUT') return 504;
-  if (stage === 'RATE_LIMIT') return 429;
+  if (stage === 'AUTHENTICATION') return 401;
+  if (stage === 'PERMISSION') return 403;
   if (
     stage === 'GEMINI_ANALYSIS' ||
     stage === 'GEMINI_INITIALIZATION' ||
@@ -134,7 +138,12 @@ export default async function handler(req: any, res: any) {
     // Stage: REQUEST_VALIDATION
     console.log(`[REVO][${analysisId}] stage=REQUEST_VALIDATION START`);
     const body = await extractRequestBody(req);
-    const { url, ownerId } = body || {};
+    const headerOwnerId = req.headers?.['x-user-id'] as string;
+    const headerIdempotency = req.headers?.['x-idempotency-key'] as string;
+
+    const { url, ownerId: bodyOwnerId, idempotencyKey: bodyIdempotency } = body || {};
+    const effectiveOwnerId = headerOwnerId || bodyOwnerId || 'guest_default';
+    const effectiveIdempotencyKey = headerIdempotency || bodyIdempotency || analysisId;
 
     if (!url || typeof url !== 'string' || !url.trim()) {
       console.warn(`[REVO][${analysisId}] stage=REQUEST_VALIDATION FAILED error=URL parameter is required`);
@@ -146,7 +155,7 @@ export default async function handler(req: any, res: any) {
         error: 'URL parameter is required.',
       });
     }
-    console.log(`[REVO][${analysisId}] stage=REQUEST_VALIDATION SUCCESS url=${url.trim()}`);
+    console.log(`[REVO][${analysisId}] stage=REQUEST_VALIDATION SUCCESS url=${url.trim()} owner=${effectiveOwnerId}`);
 
     // Stage: ENVIRONMENT_VALIDATION
     console.log(`[REVO][${analysisId}] stage=ENVIRONMENT_VALIDATION START`);
@@ -159,7 +168,11 @@ export default async function handler(req: any, res: any) {
     );
 
     // Execute Analysis Pipeline
-    const finalReport = await analyzeWebsitePipeline(url.trim(), { ownerId }, analysisId);
+    const finalReport = await analyzeWebsitePipeline(
+      url.trim(),
+      { ownerId: effectiveOwnerId, idempotencyKey: effectiveIdempotencyKey },
+      analysisId
+    );
 
     // Stage: RESPONSE_SERIALIZATION
     console.log(`[REVO][${analysisId}] stage=RESPONSE_SERIALIZATION START`);

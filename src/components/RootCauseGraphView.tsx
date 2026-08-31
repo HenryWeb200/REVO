@@ -69,10 +69,10 @@ export const RootCauseGraphView: React.FC<RootCauseGraphViewProps> = ({
               {/* Clustered Symptoms */}
               <div className="space-y-2 text-xs">
                 <span className="font-semibold text-[#71717A] block">
-                  Observed Surface Symptoms ({cluster.symptoms.length}):
+                  Observed Surface Symptoms ({(cluster.symptoms || []).length}):
                 </span>
                 <ul className="space-y-1.5">
-                  {cluster.symptoms.map((symptom, idx) => (
+                  {(cluster.symptoms || []).map((symptom, idx) => (
                     <li key={idx} className="flex items-start space-x-2 text-[#52525B]">
                       <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 mt-1.5"></span>
                       <span>{symptom}</span>
@@ -123,7 +123,7 @@ export const RootCauseGraphView: React.FC<RootCauseGraphViewProps> = ({
                 <p className="text-xs text-[#52525B] leading-relaxed">{rc.description}</p>
                 <div className="pt-2 border-t border-[#F4F4F5] space-y-1 text-xs">
                   <span className="font-semibold text-[#71717A] text-[11px]">Downstream Impact:</span>
-                  {rc.downstreamEffects.map((eff, eIdx) => (
+                  {(rc.downstreamEffects || []).map((eff, eIdx) => (
                     <div key={eIdx} className="flex items-start space-x-1.5 text-[#52525B]">
                       <ArrowRight className="w-3.5 h-3.5 text-[#1D63ED] shrink-0 mt-0.5" />
                       <span>{eff}</span>

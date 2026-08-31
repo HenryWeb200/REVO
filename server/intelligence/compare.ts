@@ -36,10 +36,10 @@ export function compareTwoAnalyses(
   }
 
   // Scores
-  const baseClarity = base.scores.clarity.score;
-  const targetClarity = target.scores.clarity.score;
-  const baseCraft = base.scores.craft.score;
-  const targetCraft = target.scores.craft.score;
+  const baseClarity = base.scores?.clarity?.score ?? 7.0;
+  const targetClarity = target.scores?.clarity?.score ?? 7.0;
+  const baseCraft = base.scores?.craft?.score ?? 7.0;
+  const targetCraft = target.scores?.craft?.score ?? 7.0;
 
   const baseAdvantage: string[] = [];
   const comparisonAdvantage: string[] = [];

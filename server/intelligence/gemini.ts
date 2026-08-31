@@ -559,12 +559,12 @@ function synthesizeEvidenceDiagnosis(evidence: WebsiteEvidencePackage, siteName:
         `Hero anchor: "${h1}" establishes the initial value proposition.`,
         `Call to action: Primary engagement path leverages "${primaryCta}".`,
         `Content structure: ${evidence.headings.length} headings across ${evidence.totalButtons} interactive controls.`,
-        `Performance footprint: Initial document load completed in ${((evidence.loadTimeMs || 800) / 1000).toFixed(2)}s.`,
+        `Performance footprint: Initial document load completed in ${(((evidence?.loadTimeMs || 800)) / 1000).toFixed(2)}s.`,
       ],
       observedFacts: [
-        `Headings detected in DOM: ${evidence.headings.length}`,
-        `Total interactive buttons: ${evidence.totalButtons}`,
-        `Load duration: ${evidence.loadTimeMs}ms`,
+        `Headings detected in DOM: ${evidence?.headings?.length ?? 0}`,
+        `Total interactive buttons: ${evidence?.totalButtons ?? 0}`,
+        `Load duration: ${evidence?.loadTimeMs ?? 0}ms`,
       ],
       inferredIntent: `Maximize user comprehension and funnel progression toward "${primaryCta}".`,
     },
@@ -669,8 +669,8 @@ function synthesizeEvidenceDiagnosis(evidence: WebsiteEvidencePackage, siteName:
       performance: {
         score: perfScore,
         confidence: 'high' as const,
-        reason: `Page loaded cleanly in ${((evidence.loadTimeMs || 800) / 1000).toFixed(2)}s.`,
-        evidence: [`Measured load time: ${evidence.loadTimeMs}ms`, `PageSpeed Performance: ${perfScore}/10`],
+        reason: `Page loaded cleanly in ${(((evidence?.loadTimeMs || 800)) / 1000).toFixed(2)}s.`,
+        evidence: [`Measured load time: ${evidence?.loadTimeMs ?? 0}ms`, `PageSpeed Performance: ${perfScore}/10`],
       },
       seo: {
         score: seoScore,

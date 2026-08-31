@@ -1,27 +1,39 @@
-import { AnalysisDocument, AnalysisDbStatus, StructuredAnalysisResponse } from '../../src/types.js';
-import { insertSupabaseAnalysis, updateSupabaseAnalysis, getSupabaseAdminClient } from './supabase.js';
+import { AnalysisDocument, AnalysisDbStatus } from '../../src/types.js';
+import {
+  insertSupabaseAnalysis,
+  updateSupabaseAnalysis,
+  getSupabaseAnalysis,
+  isSupabaseConfigured,
+  DatabaseOperationResult,
+} from './supabase.js';
 
-// In-Memory store
+// In-Memory store (active across server lifecycle)
 const memoryStore = new Map<string, AnalysisDocument>();
 
 export async function initStorage(): Promise<void> {
-  const supabase = getSupabaseAdminClient();
-  if (supabase) {
-    console.log('[REVO Storage] Cloud persistence via Supabase enabled.');
+  if (isSupabaseConfigured()) {
+    console.log('[REVO Storage] Cloud persistence via Supabase active.');
   } else {
-    console.log('[REVO Storage] In-memory persistence enabled.');
+    console.log('[REVO Storage] Supabase credentials not found. In-memory persistence active.');
   }
+}
+
+export interface StorageOperationResult {
+  recordId: string;
+  persistedToCloud: boolean;
+  cloudReason?: string;
 }
 
 /**
  * Creates an initial analysis record with unique ID, timestamps, ownerId, and status.
+ * Writes to in-memory store immediately and synchronously checks Supabase persistence status.
  */
 export async function createAnalysisRecord(
   url: string,
   normalizedUrl: string,
   ownerId?: string,
   recordIdOverride?: string
-): Promise<string> {
+): Promise<StorageOperationResult> {
   const recordId = recordIdOverride || ('revo_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 7));
   const now = new Date();
 
@@ -47,10 +59,24 @@ export async function createAnalysisRecord(
 
   memoryStore.set(recordId, doc);
 
-  // Async persist to Supabase if configured
-  await insertSupabaseAnalysis(doc).catch(() => {});
+  let persistedToCloud = false;
+  let cloudReason: string | undefined;
 
-  return recordId;
+  if (isSupabaseConfigured()) {
+    const dbRes = await insertSupabaseAnalysis(doc);
+    persistedToCloud = dbRes.success;
+    if (!dbRes.success) {
+      cloudReason = dbRes.error;
+    }
+  } else {
+    cloudReason = 'SUPABASE_NOT_CONFIGURED';
+  }
+
+  return {
+    recordId,
+    persistedToCloud,
+    cloudReason,
+  };
 }
 
 /**
@@ -60,7 +86,7 @@ export async function updateAnalysisStatus(
   id: string,
   status: AnalysisDbStatus,
   partialUpdate?: Partial<AnalysisDocument>
-): Promise<void> {
+): Promise<{ persistedToCloud: boolean; cloudReason?: string }> {
   const now = new Date();
   const updatePayload = {
     ...partialUpdate,
@@ -84,7 +110,23 @@ export async function updateAnalysisStatus(
     });
   }
 
-  await updateSupabaseAnalysis(id, status, partialUpdate).catch(() => {});
+  let persistedToCloud = false;
+  let cloudReason: string | undefined;
+
+  if (isSupabaseConfigured()) {
+    const dbRes = await updateSupabaseAnalysis(id, status, partialUpdate);
+    persistedToCloud = dbRes.success;
+    if (!dbRes.success) {
+      cloudReason = dbRes.error;
+    }
+  } else {
+    cloudReason = 'SUPABASE_NOT_CONFIGURED';
+  }
+
+  return {
+    persistedToCloud,
+    cloudReason,
+  };
 }
 
 /**
@@ -96,53 +138,21 @@ export async function getAnalysisRecord(
 ): Promise<AnalysisDocument | null> {
   let doc: AnalysisDocument | null = memoryStore.get(id) || null;
 
-  if (!doc) {
-    const supabase = getSupabaseAdminClient();
-    if (supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('analyses')
-          .select('*')
-          .eq('id', id)
-          .single();
-
-        if (data && !error) {
-          doc = {
-            id: data.id,
-            _id: data.id,
-            ownerId: data.owner_id,
-            url: data.url,
-            normalizedUrl: data.normalized_url,
-            status: data.status,
-            attemptCount: data.attempt_count || 1,
-            createdAt: new Date(data.created_at),
-            updatedAt: new Date(data.updated_at),
-            startedAt: new Date(data.started_at),
-            completedAt: data.completed_at ? new Date(data.completed_at) : undefined,
-            site: {
-              title: data.site_title || '',
-              description: data.site_description || '',
-              type: data.site_type || 'Web Experience',
-              primaryGoal: data.primary_goal || '',
-            },
-            evidence: data.evidence_data || {},
-            analysis: data.analysis_data || undefined,
-            errors: data.errors || [],
-            metadata: data.metadata || {},
-          };
-          memoryStore.set(id, doc);
-        }
-      } catch (err) {
-        console.warn('[REVO Storage] Supabase read exception:', err);
-      }
+  if (!doc && isSupabaseConfigured()) {
+    const { doc: cloudDoc } = await getSupabaseAnalysis(id);
+    if (cloudDoc) {
+      doc = cloudDoc;
+      memoryStore.set(id, doc);
     }
   }
 
   if (!doc) return null;
 
-  // Row Level Security Check: If record has an owner and a requesting user is supplied, verify match
-  if (doc.ownerId && requestingUserId && doc.ownerId !== requestingUserId) {
-    throw new Error('Access denied: You do not have permission to view this analysis.');
+  // Row Level Security Check: If record has a specific owner, verify requesting user matches owner
+  if (doc.ownerId && doc.ownerId !== 'guest_default') {
+    if (!requestingUserId || doc.ownerId !== requestingUserId.trim().toLowerCase()) {
+      throw new Error('Access denied: You do not have permission to view this analysis.');
+    }
   }
 
   return doc;

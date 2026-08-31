@@ -52,7 +52,7 @@ SITE METADATA:
 - Observed Title: ${evidence.title || 'None'}
 - Meta Description: ${evidence.metaDescription || 'None'}
 - Resolved Final URL: ${evidence.resolvedUrl || evidence.url}
-- Observed Load Time: ${evidence.loadTimeMs}ms
+- Observed Load Time: ${evidence?.loadTimeMs ?? 0}ms
 - Console Errors: ${evidence.consoleErrors?.length ? JSON.stringify(evidence.consoleErrors.slice(0, 3)) : 'None'}
 - Dominant Colors Observed: ${(evidence.dominantColors || []).slice(0, 5).join(', ') || 'Standard'}
 
@@ -74,7 +74,7 @@ FILTERED VISIBLE BODY TEXT (FIRST ${safeVisibleText.length} CHARS):
 "${safeVisibleText}"
 
 PAGESPEED / LIGHTHOUSE SIGNALS:
-${evidence.pageSpeedMetrics ? JSON.stringify(evidence.pageSpeedMetrics) : 'Direct performance measurements unavailable'}
+${evidence.pageSpeedMetrics ? JSON.stringify(evidence.pageSpeedMetrics) : `PageSpeed audit data unavailable for this run; performance conclusions must be strictly grounded in directly observed DOM metrics (observed load time: ${evidence?.loadTimeMs ?? 0}ms, ${evidence.totalImages} visual assets, ${evidence.totalButtons} interactive elements). Do NOT fabricate fake LCP, CLS, INP numbers or synthetic performance scores.`}
 </untrusted_page_data>
 `;
 

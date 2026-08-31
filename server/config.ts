@@ -23,8 +23,8 @@ export const REVO_CONFIG = {
   // Fallback High-Fidelity Parser Timeout
   FETCH_FALLBACK_TIMEOUT_MS: 12000,
 
-  // PageSpeed API Timeout
-  PAGESPEED_TIMEOUT_MS: 4500,
+  // PageSpeed API Timeout (Bounded to prevent delaying evidence collection)
+  PAGESPEED_TIMEOUT_MS: 3000,
 
   // Gemini Intelligence Timeouts & Retries
   GEMINI: {

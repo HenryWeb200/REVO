@@ -40,7 +40,7 @@ export async function buildEvidencePackageConcurrent(targetUrl: string, analysis
       console.log(`[REVO] analysis=${reqId} stage=PAGESPEED_MEASURE starting...`);
       const result = await fetchPageSpeed(targetUrl);
       pageSpeedDurationMs = Date.now() - start;
-      console.log(`[REVO] analysis=${reqId} stage=PAGESPEED_MEASURE (${(pageSpeedDurationMs / 1000).toFixed(1)}s): ${result ? 'Metrics Acquired' : 'Unavailable/Skipped'}`);
+      console.log(`[REVO] analysis=${reqId} stage=PAGESPEED_MEASURE (${(pageSpeedDurationMs / 1000).toFixed(1)}s): ${result?.metrics ? 'Metrics Acquired' : 'Unavailable/Skipped'}`);
       return result;
     } catch (err) {
       pageSpeedDurationMs = Date.now() - start;
@@ -80,8 +80,8 @@ export async function buildEvidencePackageConcurrent(targetUrl: string, analysis
     };
   }
 
-  if (pageSpeedSettled.status === 'fulfilled' && pageSpeedSettled.value) {
-    const ps = pageSpeedSettled.value;
+  if (pageSpeedSettled.status === 'fulfilled' && pageSpeedSettled.value && pageSpeedSettled.value.metrics) {
+    const ps = pageSpeedSettled.value.metrics;
     evidence.pageSpeedMetrics = {
       performance: ps.performance,
       accessibility: ps.accessibility,
@@ -90,7 +90,11 @@ export async function buildEvidencePackageConcurrent(targetUrl: string, analysis
       fcp: ps.fcp,
       lcp: ps.lcp,
       cls: ps.cls,
+      tbt: ps.tbt,
+      speedIndex: ps.speedIndex,
     };
+  } else {
+    evidence.pageSpeedMetrics = undefined;
   }
 
   const totalDurationMs = Date.now() - overallStart;
