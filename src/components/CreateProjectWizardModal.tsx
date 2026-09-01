@@ -19,7 +19,7 @@ import {
 interface CreateProjectWizardModalProps {
   isOpen: boolean;
   onClose: () => void;
-  activeEnvironment: 'personal' | 'company';
+  activeEnvironment: string;
   environments: Array<{ id: string; name: string; type: 'personal' | 'company' }>;
   onCreateProject: (projectData: {
     name: string;
@@ -46,7 +46,7 @@ export const CreateProjectWizardModal: React.FC<CreateProjectWizardModalProps> =
   const [url, setUrl] = useState('');
   const [projectType, setProjectType] = useState('saas');
   const [selectedEnvId, setSelectedEnvId] = useState(
-    activeEnvironment === 'personal' ? 'personal' : 'company'
+    activeEnvironment || (environments[0]?.id || '')
   );
   const [viewport, setViewport] = useState<'desktop' | 'mobile' | 'both'>('desktop');
   const [evaluationMode, setEvaluationMode] = useState<'strict' | 'balanced' | 'creative'>('balanced');

@@ -36,13 +36,10 @@ export default function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // Environment & Account State
-  const [activeEnvironment, setActiveEnvironment] = useState<'personal' | 'company'>('company');
+  const [activeEnvironment, setActiveEnvironment] = useState<string>('');
   const [environments, setEnvironments] = useState<
     Array<{ id: string; name: string; type: 'personal' | 'company' }>
-  >([
-    { id: 'personal', name: "Henry's Environment", type: 'personal' },
-    { id: 'company', name: 'Acme Studio', type: 'company' },
-  ]);
+  >([]);
 
   const [user, setUser] = useState({
     name: 'Henry Inyamah',
@@ -330,6 +327,7 @@ export default function App() {
         onSignOut={handleSignOut}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        hasEnvironments={environments.length > 0}
       />
 
       {/* 2. MAIN WORKSPACE CONTENT CONTAINER */}

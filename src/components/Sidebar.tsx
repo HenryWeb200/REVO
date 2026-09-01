@@ -32,13 +32,14 @@ interface SidebarProps {
   recentCount: number;
   isOpenMobile: boolean;
   onCloseMobile: () => void;
-  activeEnvironment: 'personal' | 'company';
-  onSwitchEnvironment: (env: 'personal' | 'company') => void;
+  activeEnvironment: 'personal' | 'company' | string;
+  onSwitchEnvironment: (env: any) => void;
   unreadCount: number;
   user: { name: string; email: string; avatar: string; role: string };
   onSignOut: () => void;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
+  hasEnvironments?: boolean;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -58,6 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSignOut,
   isCollapsed = false,
   onToggleCollapse,
+  hasEnvironments = true,
 }) => {
   const [isWorkspaceMenuOpen, setIsWorkspaceMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -108,19 +110,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* 2. PRIMARY ACTION */}
-      <div className="p-3">
-        <button
-          onClick={() => {
-            onNewAnalysis();
-            if (isOpenMobile) onCloseMobile();
-          }}
-          className="w-full py-2.5 px-3.5 bg-[#1D63ED] hover:bg-[#154EC1] text-white rounded-xl font-semibold text-xs flex items-center justify-center space-x-2 transition-all shadow-xs cursor-pointer active:scale-[0.98]"
-        >
-          <PlusCircle className="w-4 h-4 text-white" />
-          <span>New Analysis</span>
-        </button>
-      </div>
+      {/* 2. PRIMARY ACTION (Only shown if environment exists) */}
+      {hasEnvironments && (
+        <div className="p-3">
+          <button
+            onClick={() => {
+              onNewAnalysis();
+              if (isOpenMobile) onCloseMobile();
+            }}
+            className="w-full py-2.5 px-3.5 bg-[#1D63ED] hover:bg-[#154EC1] text-white rounded-xl font-semibold text-xs flex items-center justify-center space-x-2 transition-all shadow-xs cursor-pointer active:scale-[0.98]"
+          >
+            <PlusCircle className="w-4 h-4 text-white" />
+            <span>New Analysis</span>
+          </button>
+        </div>
+      )}
 
       {/* 3. PRIMARY NAVIGATION */}
       <div className="px-3 py-2 space-y-1">
@@ -137,112 +141,118 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           <div className="flex items-center space-x-2.5">
             <Home className="w-4 h-4" />
-            <span>Overview</span>
+            <span>Home</span>
           </div>
         </button>
 
-        <button
-          onClick={() => {
-            onNavigateGlobal('projects');
-            if (isOpenMobile) onCloseMobile();
-          }}
-          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
-            currentGlobalView === 'projects'
-              ? 'bg-[#1D63ED]/10 text-[#1D63ED]'
-              : 'hover:bg-[#F4F4F5] text-[#52525B] hover:text-[#111827]'
-          }`}
-        >
-          <div className="flex items-center space-x-2.5">
-            <FolderKanban className="w-4 h-4" />
-            <span>Projects</span>
-          </div>
-        </button>
+        {hasEnvironments && (
+          <>
+            <button
+              onClick={() => {
+                onNavigateGlobal('projects');
+                if (isOpenMobile) onCloseMobile();
+              }}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+                currentGlobalView === 'projects'
+                  ? 'bg-[#1D63ED]/10 text-[#1D63ED]'
+                  : 'hover:bg-[#F4F4F5] text-[#52525B] hover:text-[#111827]'
+              }`}
+            >
+              <div className="flex items-center space-x-2.5">
+                <FolderKanban className="w-4 h-4" />
+                <span>Projects</span>
+              </div>
+            </button>
 
-        <button
-          onClick={() => {
-            onNavigateGlobal('recent');
-            if (isOpenMobile) onCloseMobile();
-          }}
-          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
-            currentGlobalView === 'recent'
-              ? 'bg-[#1D63ED]/10 text-[#1D63ED]'
-              : 'hover:bg-[#F4F4F5] text-[#52525B] hover:text-[#111827]'
-          }`}
-        >
-          <div className="flex items-center space-x-2.5">
-            <History className="w-4 h-4" />
-            <span>Recent</span>
-          </div>
-          {recentCount > 0 && (
-            <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-[#F4F4F5] text-[#71717A]">
-              {recentCount}
-            </span>
-          )}
-        </button>
-      </div>
-
-      {/* 4. CURRENT ENVIRONMENT */}
-      <div className="px-3 py-3 border-t border-[#E4E4E7] my-2">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-[#A1A1AA] px-3 block mb-1.5">
-          Current Environment
-        </span>
-        <div className="relative">
-          <button
-            onClick={() => setIsWorkspaceMenuOpen(!isWorkspaceMenuOpen)}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold bg-[#FAFAFA] hover:bg-[#F4F4F5] text-[#111827] transition-colors cursor-pointer border border-[#E4E4E7]"
-          >
-            <div className="flex items-center space-x-2 truncate">
-              {activeEnvironment === 'personal' ? (
-                <User className="w-3.5 h-3.5 text-[#1D63ED]" />
-              ) : (
-                <Building2 className="w-3.5 h-3.5 text-[#111827]" />
+            <button
+              onClick={() => {
+                onNavigateGlobal('recent');
+                if (isOpenMobile) onCloseMobile();
+              }}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+                currentGlobalView === 'recent'
+                  ? 'bg-[#1D63ED]/10 text-[#1D63ED]'
+                  : 'hover:bg-[#F4F4F5] text-[#52525B] hover:text-[#111827]'
+              }`}
+            >
+              <div className="flex items-center space-x-2.5">
+                <History className="w-4 h-4" />
+                <span>Recent</span>
+              </div>
+              {recentCount > 0 && (
+                <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-[#F4F4F5] text-[#71717A]">
+                  {recentCount}
+                </span>
               )}
-              <span className="truncate">
-                {activeEnvironment === 'personal' ? "Henry's Environment" : 'Acme Studio'}
-              </span>
-            </div>
-            <ChevronDown className="w-3.5 h-3.5 text-[#71717A]" />
-          </button>
-
-          {isWorkspaceMenuOpen && (
-            <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-[#E4E4E7] rounded-xl shadow-xl z-30 p-1 space-y-0.5">
-              <button
-                onClick={() => {
-                  onSwitchEnvironment('personal');
-                  setIsWorkspaceMenuOpen(false);
-                }}
-                className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs text-left hover:bg-[#F4F4F5] cursor-pointer text-[#111827]"
-              >
-                <div className="flex items-center space-x-2">
-                  <User className="w-3.5 h-3.5 text-[#1D63ED]" />
-                  <div className="flex flex-col">
-                    <span className="font-semibold">Henry's Environment</span>
-                    <span className="text-[10px] text-[#71717A]">Personal Workspace</span>
-                  </div>
-                </div>
-                {activeEnvironment === 'personal' && <Check className="w-3.5 h-3.5 text-[#1D63ED]" />}
-              </button>
-
-              <button
-                onClick={() => {
-                  onSwitchEnvironment('company');
-                  setIsWorkspaceMenuOpen(false);
-                }}
-                className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs text-left hover:bg-[#F4F4F5] cursor-pointer text-[#111827]"
-              >
-                <div className="flex items-center space-x-2">
-                  <Building2 className="w-3.5 h-3.5 text-[#111827]" />
-                  <div className="flex flex-col">
-                    <span className="font-semibold">Acme Studio</span>
-                    <span className="text-[10px] text-[#71717A]">Company Environment &bull; 6 Members</span>
-                  </div>
-                </div>
-                {activeEnvironment === 'company' && <Check className="w-3.5 h-3.5 text-[#1D63ED]" />}
-              </button>
-            </div>
-          )}
-        </div>
+            </button>
+          </>
+        )}
       </div>
+
+      {/* 4. CURRENT ENVIRONMENT (Only shown if environment exists) */}
+      {hasEnvironments && (
+        <div className="px-3 py-3 border-t border-[#E4E4E7] my-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#A1A1AA] px-3 block mb-1.5">
+            Current Environment
+          </span>
+          <div className="relative">
+            <button
+              onClick={() => setIsWorkspaceMenuOpen(!isWorkspaceMenuOpen)}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold bg-[#FAFAFA] hover:bg-[#F4F4F5] text-[#111827] transition-colors cursor-pointer border border-[#E4E4E7]"
+            >
+              <div className="flex items-center space-x-2 truncate">
+                {activeEnvironment === 'personal' ? (
+                  <User className="w-3.5 h-3.5 text-[#1D63ED]" />
+                ) : (
+                  <Building2 className="w-3.5 h-3.5 text-[#111827]" />
+                )}
+                <span className="truncate">
+                  {activeEnvironment === 'personal' ? "Personal Environment" : activeEnvironment || 'Active Workspace'}
+                </span>
+              </div>
+              <ChevronDown className="w-3.5 h-3.5 text-[#71717A]" />
+            </button>
+
+            {isWorkspaceMenuOpen && (
+              <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-[#E4E4E7] rounded-xl shadow-xl z-30 p-1 space-y-0.5">
+                <button
+                  onClick={() => {
+                    onSwitchEnvironment('personal');
+                    setIsWorkspaceMenuOpen(false);
+                  }}
+                  className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs text-left hover:bg-[#F4F4F5] cursor-pointer text-[#111827]"
+                >
+                  <div className="flex items-center space-x-2">
+                    <User className="w-3.5 h-3.5 text-[#1D63ED]" />
+                    <div className="flex flex-col">
+                      <span className="font-semibold">Personal Environment</span>
+                      <span className="text-[10px] text-[#71717A]">Personal Workspace</span>
+                    </div>
+                  </div>
+                  {activeEnvironment === 'personal' && <Check className="w-3.5 h-3.5 text-[#1D63ED]" />}
+                </button>
+
+                <button
+                  onClick={() => {
+                    onSwitchEnvironment('company');
+                    setIsWorkspaceMenuOpen(false);
+                  }}
+                  className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs text-left hover:bg-[#F4F4F5] cursor-pointer text-[#111827]"
+                >
+                  <div className="flex items-center space-x-2">
+                    <Building2 className="w-3.5 h-3.5 text-[#111827]" />
+                    <div className="flex flex-col">
+                      <span className="font-semibold">Team Environment</span>
+                      <span className="text-[10px] text-[#71717A]">Company Workspace</span>
+                    </div>
+                  </div>
+                  {activeEnvironment === 'company' && <Check className="w-3.5 h-3.5 text-[#1D63ED]" />}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="flex-1" />
 
@@ -408,21 +418,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* 2. New Analysis Compact Button */}
-      <div className="my-3">
-        <button
-          onClick={onNewAnalysis}
-          title="New Analysis"
-          className="w-10 h-10 rounded-xl bg-[#1D63ED] hover:bg-[#154EC1] text-white flex items-center justify-center transition-all shadow-xs cursor-pointer active:scale-95"
-        >
-          <Plus className="w-5 h-5 text-white" />
-        </button>
-      </div>
+      {hasEnvironments && (
+        <div className="my-3">
+          <button
+            onClick={onNewAnalysis}
+            title="New Analysis"
+            className="w-10 h-10 rounded-xl bg-[#1D63ED] hover:bg-[#154EC1] text-white flex items-center justify-center transition-all shadow-xs cursor-pointer active:scale-95"
+          >
+            <Plus className="w-5 h-5 text-white" />
+          </button>
+        </div>
+      )}
 
       {/* 3. Primary Nav Icons */}
       <div className="space-y-2 w-full px-2">
         <button
           onClick={() => onNavigateGlobal('home')}
-          title="Overview"
+          title="Home"
           className={`w-10 h-10 mx-auto rounded-xl flex items-center justify-center transition-colors cursor-pointer ${
             currentGlobalView === 'home'
               ? 'bg-[#1D63ED]/10 text-[#1D63ED]'
@@ -432,48 +444,54 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <Home className="w-4 h-4" />
         </button>
 
-        <button
-          onClick={() => onNavigateGlobal('projects')}
-          title="Projects"
-          className={`w-10 h-10 mx-auto rounded-xl flex items-center justify-center transition-colors cursor-pointer ${
-            currentGlobalView === 'projects'
-              ? 'bg-[#1D63ED]/10 text-[#1D63ED]'
-              : 'hover:bg-[#F4F4F5] text-[#52525B]'
-          }`}
-        >
-          <FolderKanban className="w-4 h-4" />
-        </button>
+        {hasEnvironments && (
+          <>
+            <button
+              onClick={() => onNavigateGlobal('projects')}
+              title="Projects"
+              className={`w-10 h-10 mx-auto rounded-xl flex items-center justify-center transition-colors cursor-pointer ${
+                currentGlobalView === 'projects'
+                  ? 'bg-[#1D63ED]/10 text-[#1D63ED]'
+                  : 'hover:bg-[#F4F4F5] text-[#52525B]'
+              }`}
+            >
+              <FolderKanban className="w-4 h-4" />
+            </button>
 
-        <button
-          onClick={() => onNavigateGlobal('recent')}
-          title="Recent History"
-          className={`w-10 h-10 mx-auto rounded-xl flex items-center justify-center relative transition-colors cursor-pointer ${
-            currentGlobalView === 'recent'
-              ? 'bg-[#1D63ED]/10 text-[#1D63ED]'
-              : 'hover:bg-[#F4F4F5] text-[#52525B]'
-          }`}
-        >
-          <History className="w-4 h-4" />
-          {recentCount > 0 && (
-            <span className="w-2 h-2 rounded-full bg-[#111827] absolute top-2 right-2" />
-          )}
-        </button>
+            <button
+              onClick={() => onNavigateGlobal('recent')}
+              title="Recent History"
+              className={`w-10 h-10 mx-auto rounded-xl flex items-center justify-center relative transition-colors cursor-pointer ${
+                currentGlobalView === 'recent'
+                  ? 'bg-[#1D63ED]/10 text-[#1D63ED]'
+                  : 'hover:bg-[#F4F4F5] text-[#52525B]'
+              }`}
+            >
+              <History className="w-4 h-4" />
+              {recentCount > 0 && (
+                <span className="w-2 h-2 rounded-full bg-[#111827] absolute top-2 right-2" />
+              )}
+            </button>
+          </>
+        )}
       </div>
 
       {/* 4. Environment Quick Toggle Icon */}
-      <div className="my-3 pt-3 border-t border-[#E4E4E7] w-full px-2">
-        <button
-          onClick={() => onSwitchEnvironment(activeEnvironment === 'personal' ? 'company' : 'personal')}
-          title={`Active: ${activeEnvironment === 'personal' ? "Henry's Environment" : 'Acme Studio'}. Click to switch.`}
-          className="w-10 h-10 mx-auto rounded-xl bg-[#FAFAFA] border border-[#E4E4E7] flex items-center justify-center hover:bg-[#F4F4F5] cursor-pointer transition-colors"
-        >
-          {activeEnvironment === 'personal' ? (
-            <User className="w-4 h-4 text-[#1D63ED]" />
-          ) : (
-            <Building2 className="w-4 h-4 text-[#111827]" />
-          )}
-        </button>
-      </div>
+      {hasEnvironments && (
+        <div className="my-3 pt-3 border-t border-[#E4E4E7] w-full px-2">
+          <button
+            onClick={() => onSwitchEnvironment(activeEnvironment === 'personal' ? 'company' : 'personal')}
+            title={`Active Environment: ${activeEnvironment}. Click to switch.`}
+            className="w-10 h-10 mx-auto rounded-xl bg-[#FAFAFA] border border-[#E4E4E7] flex items-center justify-center hover:bg-[#F4F4F5] cursor-pointer transition-colors"
+          >
+            {activeEnvironment === 'personal' ? (
+              <User className="w-4 h-4 text-[#1D63ED]" />
+            ) : (
+              <Building2 className="w-4 h-4 text-[#111827]" />
+            )}
+          </button>
+        </div>
+      )}
 
       <div className="flex-1" />
 
