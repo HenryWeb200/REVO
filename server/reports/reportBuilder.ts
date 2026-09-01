@@ -57,6 +57,7 @@ export function buildFinalReport(
     status: 'success',
 
     // V2 Reasoning Modules
+    awardIntelligence: v2Layers.awardIntelligence,
     executiveSummary: v2Layers.executiveSummary,
     designDna: v2Layers.designDna,
     familiarity: v2Layers.familiarity,

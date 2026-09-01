@@ -1,6 +1,6 @@
 {
-  "name": "REVO Analyzer",
-  "description": "Intelligent Design X-Ray and website diagnostic instrument that explains why digital experiences work.",
+  "name": "REVO V3 Dashboard",
+  "description": "Intelligent workspace and design evaluation engine providing grounded website diagnoses, visual DNA analysis, and evidence-driven recommendations.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

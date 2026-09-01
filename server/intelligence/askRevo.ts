@@ -1,6 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import { StructuredAnalysisResponse } from '../../src/types.js';
-import { REVO_CONFIG } from '../config.js';
+import { REVO_CONFIG, getNormalizedCandidateModels } from '../config.js';
 
 export interface AskRevoRequest {
   question: string;
@@ -89,9 +89,7 @@ ${cleanQuestion}
 Provide your answer in a concise, authoritative, structured response.
     `.trim();
 
-    const candidateModels = Array.from(
-      new Set([process.env.GEMINI_MODEL, ...REVO_CONFIG.GEMINI.CANDIDATE_MODELS].filter(Boolean) as string[])
-    );
+    const candidateModels = getNormalizedCandidateModels();
 
     let text = '';
     for (const model of candidateModels) {

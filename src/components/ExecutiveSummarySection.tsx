@@ -1,13 +1,16 @@
 import React from 'react';
 import { ShieldCheck, AlertOctagon, TrendingUp, Cpu, Sparkles, CheckCircle2 } from 'lucide-react';
-import { StructuredAnalysisResponse } from '../types';
+import { StructuredAnalysisResponse, ExecutiveSummaryV2 } from '../types';
 
 interface ExecutiveSummaryProps {
-  result: StructuredAnalysisResponse;
+  result?: StructuredAnalysisResponse;
+  summary?: ExecutiveSummaryV2;
+  overallDiagnosis?: string;
+  scores?: any;
 }
 
-export const ExecutiveSummarySection: React.FC<ExecutiveSummaryProps> = ({ result }) => {
-  const exec = result.executiveSummary;
+export const ExecutiveSummarySection: React.FC<ExecutiveSummaryProps> = ({ result, summary }) => {
+  const exec = summary || result?.executiveSummary;
   if (!exec) return null;
 
   return (

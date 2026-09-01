@@ -13,7 +13,9 @@ import {
   AiInstructionsV2,
   RevoDesignBriefV2,
   PriorityOpportunity,
+  AwardIntelligenceV2,
 } from '../../src/types.js';
+import { evaluateAwardIntelligenceV2 } from './awardEvaluator.js';
 
 /**
  * Computes deterministic Design DNA from directly observed styles, colors, DOM hierarchy, and metrics.
@@ -788,6 +790,7 @@ export function enrichWithV2Intelligence(
   base: Omit<StructuredAnalysisResponse, 'id' | 'analyzedAt' | 'evidence' | 'status'>,
   evidence: WebsiteEvidencePackage
 ): {
+  awardIntelligence: AwardIntelligenceV2;
   executiveSummary: ExecutiveSummaryV2;
   designDna: DesignDnaV2;
   familiarity: FamiliarityAnalysisV2;
@@ -813,31 +816,34 @@ export function enrichWithV2Intelligence(
   // 1. Design DNA
   const designDna = extractDesignDna(evidence, siteName);
 
-  // 2. Familiarity
+  // 2. Award Intelligence V2 Evaluator
+  const awardIntelligence = evaluateAwardIntelligenceV2(evidence, base.scores, designDna, siteName, base.siteType);
+
+  // 3. Familiarity
   const familiarity = analyzeFamiliarity(evidence, designDna);
 
-  // 3. Root Causes & Issue Clusters
+  // 4. Root Causes & Issue Clusters
   const { rootCauses, issueClusters } = buildRootCausesAndClusters(evidence, base.whereItBreaks);
 
-  // 4. Show Me Why
+  // 5. Show Me Why
   const showMeWhy = buildShowMeWhyItems(evidence, base.scores, base.whereItBreaks);
 
-  // 5. Quick Wins
+  // 6. Quick Wins
   const quickWins = buildQuickWins(evidence, primaryCta);
 
-  // 6. Roadmap Tiers
+  // 7. Roadmap Tiers
   const roadmapTiers = buildRoadmapTiers(base.topOpportunities, quickWins);
 
-  // 7. Variety Engine
+  // 8. Variety Engine
   const varietyOptions = buildVarietyOptions(siteName, designDna);
 
-  // 8. Design New Proposal
+  // 9. Design New Proposal
   const designNew = buildDesignNew(siteName, h1, primaryCta);
 
-  // 9. AI Instructions
+  // 10. AI Instructions
   const aiInstructions = buildAiInstructions(siteName, evidence.url, designDna, quickWins, designNew);
 
-  // 10. Executive Summary & "So What?" Layer
+  // 11. Executive Summary & "So What?" Layer
   const biggestStrength = base.whyItWorks[0]?.title || 'Direct Value Proposition Clarity';
   const biggestWeakness = base.whereItBreaks[0]?.title || 'Call-to-Action Hierarchy Competition';
   const biggestOpportunity = base.topOpportunities[0]?.recommendation || 'Elevate primary CTA contrast and streamline feature scanning.';
@@ -856,10 +862,11 @@ export function enrichWithV2Intelligence(
     theSoWhatTakeaway: `Your website's primary proposition is clear, but subtle visual competition across ${evidence.totalButtons} action points dilutes conversion velocity. Applying single-point focal hierarchy and sub-second asset hydration will unlock elite benchmark performance.`,
   };
 
-  // 11. Design Brief
+  // 12. Design Brief
   const designBrief = buildDesignBrief(siteName, evidence.url, evidence, designDna, executiveSummary, base.whereItBreaks);
 
   return {
+    awardIntelligence,
     executiveSummary,
     designDna,
     familiarity,

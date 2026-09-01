@@ -5,7 +5,7 @@
 
 export const REVO_CONFIG = {
   // Overall Pipeline Timeout (Hard deadline)
-  ANALYSIS_HARD_DEADLINE_MS: Number(process.env.ANALYSIS_TIMEOUT_MS) || 60000,
+  ANALYSIS_HARD_DEADLINE_MS: Number(process.env.ANALYSIS_TIMEOUT_MS) || 55000,
 
   // Playwright Fine-Grained Timeouts
   PLAYWRIGHT: {
@@ -28,9 +28,15 @@ export const REVO_CONFIG = {
 
   // Gemini Intelligence Timeouts & Retries
   GEMINI: {
-    DEFAULT_MODEL: 'gemini-3.5-flash-lite',
-    CANDIDATE_MODELS: ['gemini-3.5-flash-lite', 'gemini-3.7-flash', 'gemini-3.6-flash'],
-    REQUEST_TIMEOUT_MS: 25000,
+    DEFAULT_MODEL: 'gemini-3.6-flash',
+    CANDIDATE_MODELS: [
+      'gemini-3.6-flash',
+      'gemini-3.5-flash-lite',
+      'gemini-3.7-flash',
+      'gemini-2.5-flash',
+      'gemini-2.0-flash',
+    ],
+    REQUEST_TIMEOUT_MS: 15000,
     MAX_REPAIR_ATTEMPTS: 1,
     MAX_EVIDENCE_TEXT_CHARS: 3500,
     MAX_HEADINGS_COUNT: 20,
@@ -60,3 +66,21 @@ export const REVO_CONFIG = {
     MAX_URL_LENGTH: 2048,
   },
 };
+
+export function normalizeGeminiModel(modelName?: string): string | null {
+  if (!modelName) return null;
+  const clean = modelName.trim().replace(/^models\//, '');
+  return clean || REVO_CONFIG.GEMINI.DEFAULT_MODEL;
+}
+
+export function getNormalizedCandidateModels(): string[] {
+  const envModel = normalizeGeminiModel(process.env.GEMINI_MODEL);
+  const candidates = [
+    envModel,
+    REVO_CONFIG.GEMINI.DEFAULT_MODEL,
+    ...REVO_CONFIG.GEMINI.CANDIDATE_MODELS,
+  ].filter(Boolean) as string[];
+
+  const unique = Array.from(new Set(candidates));
+  return unique.map((m) => normalizeGeminiModel(m)!).filter(Boolean);
+}

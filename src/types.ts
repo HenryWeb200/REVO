@@ -147,6 +147,122 @@ export interface AnalysisProcessingTimings {
 // REVO V2 EXPANDED DOMAIN MODELS
 // ═══════════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════════════
+// REVO V2 AWARD INTELLIGENCE DOMAIN MODEL
+// ═══════════════════════════════════════════════════════════════════════
+
+export type AwardWebsiteType =
+  | 'portfolio'
+  | 'agency'
+  | 'saas'
+  | 'developer_tool'
+  | 'ecommerce'
+  | 'editorial'
+  | 'cultural'
+  | 'campaign'
+  | 'product'
+  | 'corporate'
+  | 'experimental'
+  | 'other';
+
+export type AwardQualitativeLevel =
+  | 'Conventional'
+  | 'Promising'
+  | 'Distinctive'
+  | 'Award-Caliber Potential'
+  | 'Exceptional'
+  | 'Groundbreaking';
+
+export type AwardJudgingDimensionKey =
+  | 'originalityIdea'
+  | 'creativeAmbition'
+  | 'visualCraft'
+  | 'interactionDesign'
+  | 'motion'
+  | 'overallExperience'
+  | 'usability'
+  | 'executionQuality'
+  | 'coherence'
+  | 'storytelling'
+  | 'emotionalImpact'
+  | 'innovation'
+  | 'fitForPurpose'
+  | 'distinctiveness';
+
+export interface AwardJudgingDimension {
+  key: AwardJudgingDimensionKey;
+  name: string;
+  categoryGroup: 'Creative Idea' | 'Craft & Execution' | 'Experience & Emotion' | 'Category Fit';
+  score: number; // 0 - 100
+  weight: number;
+  status: 'strongest' | 'limiting' | 'neutral';
+  assessment: string;
+  evidence: string[];
+}
+
+export interface NegativeAwardSignal {
+  id: string;
+  label: string;
+  severity: 'high' | 'medium' | 'low';
+  description: string;
+  evidence: string;
+  penaltyPoints: number;
+}
+
+export interface PositiveAwardSignal {
+  id: string;
+  label: string;
+  strength: 'high' | 'medium';
+  description: string;
+  evidence: string;
+  bonusPoints: number;
+}
+
+export interface AwardImprovement {
+  id: string;
+  title: string;
+  category: 'Creative Concept' | 'Art Direction' | 'Interaction Craft' | 'Motion Design' | 'Storytelling';
+  problem: string;
+  recommendation: string;
+  expectedCreativeImpact: string;
+  priority: 1 | 2 | 3 | 4;
+}
+
+export interface AwardIntelligenceV2 {
+  websiteType: AwardWebsiteType;
+  typeDisplayName: string;
+  categoryExpectationsSummary: string;
+  
+  // Explicit Distinction
+  websiteQualityScore: number; // 0 - 100 scale (Functions & serves users)
+  awardPotentialScore: number; // 0 - 100 scale (Exceptional creative/digital work)
+  qualitativeLevel: AwardQualitativeLevel;
+  levelDescription: string;
+  
+  qualityVsAwardRationale: string;
+  percentileStatement: string;
+  verdict: string;
+
+  // 14 Generalized Award Judging Principles
+  judgingDimensions: AwardJudgingDimension[];
+  strongestDimensions: AwardJudgingDimension[];
+  limitingDimensions: AwardJudgingDimension[];
+
+  // Signals
+  positiveSignals: PositiveAwardSignal[];
+  negativeSignals: NegativeAwardSignal[];
+  
+  // Specific Minimalism Assessment
+  minimalismAssessment: {
+    isMinimalist: boolean;
+    verdict: string;
+    impactOnScore: string;
+  };
+
+  // High Impact Action Plan
+  highestImpactImprovements: AwardImprovement[];
+}
+
 export interface ExecutiveSummaryV2 {
   overallHealth: string;
   biggestStrength: string;
@@ -376,6 +492,7 @@ export interface StructuredAnalysisResponse {
   };
 
   // V2 Reasoning & Intelligence Layers
+  awardIntelligence?: AwardIntelligenceV2;
   executiveSummary?: ExecutiveSummaryV2;
   designDna?: DesignDnaV2;
   familiarity?: FamiliarityAnalysisV2;

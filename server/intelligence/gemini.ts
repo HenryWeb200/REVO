@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import { WebsiteEvidencePackage, StructuredAnalysisResponse } from '../../src/types.js';
 import { buildSecureOptimizedPromptPayload } from '../security/promptSanitizer.js';
-import { REVO_CONFIG } from '../config.js';
+import { REVO_CONFIG, getNormalizedCandidateModels } from '../config.js';
 
 export type GeminiFailureCategory =
   | 'AUTHENTICATION'
@@ -170,26 +170,7 @@ Produce the full structured JSON report adhering strictly to the schema.
   }
 
   // Candidate models list
-  function normalizeModel(modelName?: string): string | null {
-    if (!modelName) return null;
-    const clean = modelName.trim().replace(/^models\//, '');
-    // If a deprecated/retired model is passed in the environment, rewrite to current default model
-    if (
-      clean.includes('2.5-flash') ||
-      clean.includes('2.0-flash') ||
-      clean.includes('1.5-flash') ||
-      clean.includes('1.0-pro')
-    ) {
-      return REVO_CONFIG.GEMINI.DEFAULT_MODEL;
-    }
-    return clean;
-  }
-
-  const normalizedEnvModel = normalizeModel(process.env.GEMINI_MODEL);
-  const baseCandidateModels = REVO_CONFIG.GEMINI.CANDIDATE_MODELS;
-  const allUniqueModels = Array.from(
-    new Set([normalizedEnvModel, ...baseCandidateModels].filter(Boolean) as string[])
-  );
+  const allUniqueModels = getNormalizedCandidateModels();
 
   // Sort available models first (not currently in cooldown)
   const candidateModels = allUniqueModels.sort((a, b) => {
@@ -483,6 +464,7 @@ Produce the full structured JSON report adhering strictly to the schema.
           category === 'AUTHENTICATION' ||
           category === 'MODEL_ERROR' ||
           category === 'RATE_LIMIT' ||
+          category === 'TIMEOUT' ||
           errorMsg.includes('RESOURCE_EXHAUSTED') ||
           errorMsg.includes('429') ||
           errorMsg.includes('503') ||
@@ -490,10 +472,11 @@ Produce the full structured JSON report adhering strictly to the schema.
           errorMsg.includes('high demand') ||
           errorMsg.includes('NOT_FOUND') ||
           errorMsg.includes('404') ||
-          errorMsg.includes('no longer available')
+          errorMsg.includes('no longer available') ||
+          errorMsg.toLowerCase().includes('timeout')
         ) {
           markModelCooldown(model, 60000);
-          console.log(`[REVO] analysis=${reqId} stage=GEMINI_REQUEST model=${model} busy/exhausted (cooldown 60s). Failing over immediately to alternative model...`);
+          console.log(`[REVO] analysis=${reqId} stage=GEMINI_REQUEST model=${model} busy/exhausted/timed out (cooldown 60s). Failing over immediately to alternative model...`);
           break;
         }
         await new Promise((resolve) => setTimeout(resolve, 200));

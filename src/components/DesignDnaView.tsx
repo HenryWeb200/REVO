@@ -1,36 +1,89 @@
-import React from 'react';
-import { Palette, Type, Box, Grid, Activity, Compass, ShieldAlert, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { Palette, Type, Box, Grid, Activity, Compass, ShieldAlert, Sparkles, Copy, Check, Terminal } from 'lucide-react';
 import { DesignDnaV2, FamiliarityAnalysisV2, WebsiteEvidencePackage } from '../types';
 
 interface DesignDnaViewProps {
   dna?: DesignDnaV2;
   familiarity?: FamiliarityAnalysisV2;
-  evidence: WebsiteEvidencePackage;
-  siteName: string;
+  evidence?: WebsiteEvidencePackage;
+  siteName?: string;
 }
 
 export const DesignDnaView: React.FC<DesignDnaViewProps> = ({
   dna,
   familiarity,
   evidence,
-  siteName,
+  siteName = 'this project',
 }) => {
+  const [copied, setCopied] = useState(false);
+
   if (!dna) return null;
+
+  const handleCopyPrompt = () => {
+    const promptText = `
+# REVO DISCOVERED DESIGN DNA & AI CODING INSTRUCTIONS: ${siteName}
+
+## 1. TYPOGRAPHY SYSTEM
+- Style Archetype: ${dna.typography.style}
+- Heading Hierarchy: ${dna.typography.headingHierarchy}
+- Contrast & Rhythm: ${dna.typography.rhythm}
+
+## 2. GEOMETRY & ELEVATION
+- Corner Radii: ${dna.geometry.cornerRadius}
+- Card Framing: ${dna.geometry.cardStyle}
+- Border Logic: ${dna.geometry.borderTreatment}
+
+## 3. DENSITY & SPACING RHYTHM
+- Density Level: ${dna.density.level}
+- Spacing Math: ${dna.density.spacingRhythm}
+
+## 4. COMPOSITION & PACING
+- Layout Pattern: ${dna.composition.layoutPattern}
+- Focal Trajectory: ${dna.composition.focalBalance}
+- Negative Space Usage: ${dna.composition.negativeSpaceUsage}
+
+## 5. COLOR PROFILE & SWATCHES
+- Dominant Swatches: ${dna.colorProfile.dominantPalette.join(', ')}
+- Accent Strategy: ${dna.colorProfile.accentStrategy}
+
+## 6. MOTION & INTERACTION TONE
+- Transitions: ${dna.motion.presence}
+- Micro-interactions: ${dna.motion.interactionStyle}
+- Visual Archetype: ${dna.visualTone.archetype}
+
+## GUIDELINES FOR LLM / CURSOR / GEMINI AGENT:
+When implementing UI elements for ${siteName}, strictly follow the corner radii (${dna.geometry.cornerRadius}), border styling (${dna.geometry.borderTreatment}), typography rhythm, and color strategy specified above. Avoid adding unrequested decorative elements or heavy gradients. Maintain ${dna.density.level} spacing density throughout.
+    `.trim();
+
+    navigator.clipboard.writeText(promptText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div className="space-y-12">
       {/* Header */}
-      <div className="space-y-2 border-b border-[#E4E4E7] pb-6">
-        <div className="flex items-center space-x-2 text-xs text-[#1D63ED] font-semibold uppercase tracking-wider">
-          <Compass className="w-4 h-4" />
-          <span>Visual & Architectural Genome</span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E4E4E7] pb-6">
+        <div className="space-y-1">
+          <div className="flex items-center space-x-2 text-xs text-[#1D63ED] font-semibold uppercase tracking-wider">
+            <Compass className="w-4 h-4" />
+            <span>Visual & Architectural Genome</span>
+          </div>
+          <h3 className="font-display text-3xl font-extrabold text-[#111827]">
+            Design DNA & Visual Language
+          </h3>
+          <p className="text-sm text-[#71717A] max-w-2xl">
+            The underlying mathematical, typographic, and geometric blueprint governing {siteName}'s visual hierarchy.
+          </p>
         </div>
-        <h3 className="font-display text-3xl font-extrabold text-[#111827]">
-          Design DNA & Visual Language
-        </h3>
-        <p className="text-sm text-[#71717A] max-w-3xl">
-          The underlying mathematical, typographic, and geometric blueprint governing {siteName}'s visual hierarchy and emotional feel.
-        </p>
+
+        <button
+          onClick={handleCopyPrompt}
+          className="px-4 py-2.5 bg-[#111827] hover:bg-black text-white font-semibold text-xs rounded-xl transition-all shadow-xs flex items-center justify-center space-x-2 cursor-pointer active:scale-95 shrink-0"
+        >
+          {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-white" />}
+          <span>{copied ? 'Copied Prompt!' : 'Copy AI Design Prompt'}</span>
+        </button>
       </div>
 
       {/* DNA Matrix Cards */}
